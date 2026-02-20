@@ -23,10 +23,11 @@ public partial class PiPWindow : Window
         base.OnMouseLeftButtonDown(e);
         if (e.ClickCount == 2)
         {
-            Close();
+            try { Close(); } catch { /* already closing */ }
             return;
         }
-        DragMove();
+        try { DragMove(); }
+        catch (InvalidOperationException) { /* mouse released outside window */ }
     }
 
     private void CloseButton_Click(object sender, RoutedEventArgs e) => Close();

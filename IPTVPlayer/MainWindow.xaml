@@ -62,6 +62,7 @@
                 <Grid>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
                         <RowDefinition Height="*"/>
                     </Grid.RowDefinitions>
 
@@ -73,15 +74,58 @@
                         <Run Text=")"/>
                     </TextBlock>
 
+                    <!-- Category Tabs -->
+                    <ItemsControl Grid.Row="1" ItemsSource="{Binding Categories}" Margin="6,2,6,4">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <WrapPanel Orientation="Horizontal"/>
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <RadioButton GroupName="CategoryTabs" Margin="2"
+                                             IsChecked="{Binding IsSelected, RelativeSource={RelativeSource Self}}"
+                                             Click="CategoryTab_Click" Tag="{Binding}"
+                                             Cursor="Hand">
+                                    <RadioButton.Template>
+                                        <ControlTemplate TargetType="RadioButton">
+                                            <Border x:Name="TabBd" CornerRadius="4" Padding="8,5"
+                                                    Background="{StaticResource SurfaceBrush}"
+                                                    BorderBrush="{StaticResource BorderBrush}" BorderThickness="1">
+                                                <StackPanel Orientation="Horizontal">
+                                                    <TextBlock Text="{Binding Name}" FontSize="11"
+                                                               Foreground="{StaticResource TextBrush}"/>
+                                                    <TextBlock FontSize="10" Margin="4,0,0,0"
+                                                               Foreground="{StaticResource TextDimBrush}"
+                                                               VerticalAlignment="Center"
+                                                               Text="{Binding TotalChannels, StringFormat='({0})'}"/>
+                                                </StackPanel>
+                                            </Border>
+                                            <ControlTemplate.Triggers>
+                                                <Trigger Property="IsChecked" Value="True">
+                                                    <Setter TargetName="TabBd" Property="Background" Value="{StaticResource AccentBrush}"/>
+                                                    <Setter TargetName="TabBd" Property="BorderBrush" Value="{StaticResource AccentBrush}"/>
+                                                </Trigger>
+                                                <Trigger Property="IsMouseOver" Value="True">
+                                                    <Setter TargetName="TabBd" Property="Background" Value="{StaticResource SurfaceHighBrush}"/>
+                                                </Trigger>
+                                            </ControlTemplate.Triggers>
+                                        </ControlTemplate>
+                                    </RadioButton.Template>
+                                </RadioButton>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+
                     <!-- Loading -->
-                    <ProgressBar Grid.Row="1" IsIndeterminate="True" Height="3"
+                    <ProgressBar Grid.Row="2" IsIndeterminate="True" Height="3"
                                  VerticalAlignment="Top"
                                  Visibility="{Binding IsLoading, Converter={StaticResource BoolToVis}}"
                                  Foreground="{StaticResource AccentBrush}"
                                  Background="Transparent" BorderThickness="0"/>
 
                     <!-- Channel Tree -->
-                    <TreeView x:Name="ChannelTree" Grid.Row="1" Margin="0,4,0,0"
+                    <TreeView x:Name="ChannelTree" Grid.Row="2" Margin="0,4,0,0"
                               ItemsSource="{Binding FilteredGroups}"
                               MouseDoubleClick="ChannelTree_MouseDoubleClick">
                         <TreeView.ItemTemplate>
@@ -103,12 +147,22 @@
                                 <HierarchicalDataTemplate.ItemTemplate>
                                     <DataTemplate>
                                         <StackPanel Orientation="Horizontal" Margin="2,1">
-                                            <TextBlock Text="&#xE774;" FontFamily="Segoe MDL2 Assets"
-                                                       FontSize="11" Margin="0,0,6,0"
-                                                       Foreground="{StaticResource TextDimBrush}"
-                                                       VerticalAlignment="Center"/>
+                                            <!-- Channel Logo -->
+                                            <Grid Width="24" Height="24" Margin="0,0,6,0" VerticalAlignment="Center">
+                                                <!-- Fallback icon (always visible underneath) -->
+                                                <TextBlock Text="&#xE774;" FontFamily="Segoe MDL2 Assets"
+                                                           FontSize="14"
+                                                           Foreground="{StaticResource TextDimBrush}"
+                                                           HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                <!-- Logo overlays the icon when loaded -->
+                                                <Image Source="{Binding LogoUrl, Converter={StaticResource ImgLoad}, IsAsync=True}"
+                                                       Width="24" Height="24"
+                                                       Stretch="UniformToFill"
+                                                       RenderOptions.BitmapScalingMode="HighQuality"/>
+                                            </Grid>
                                             <TextBlock Text="{Binding Name}" FontSize="13"
-                                                       Foreground="{StaticResource TextBrush}"/>
+                                                       Foreground="{StaticResource TextBrush}"
+                                                       VerticalAlignment="Center"/>
                                         </StackPanel>
                                     </DataTemplate>
                                 </HierarchicalDataTemplate.ItemTemplate>
@@ -117,7 +171,7 @@
                     </TreeView>
 
                     <!-- Error Message -->
-                    <Border Grid.Row="1" VerticalAlignment="Bottom" Margin="8" CornerRadius="4"
+                    <Border Grid.Row="2" VerticalAlignment="Bottom" Margin="8" CornerRadius="4"
                             Background="#33EF4444" Padding="10,6">
                         <Border.Style>
                             <Style TargetType="Border">

@@ -60,8 +60,16 @@ public partial class PlayerViewModel : ObservableObject, IDisposable
     public PlayerViewModel()
     {
         Core.Initialize();
-        _libVLC = new LibVLC("--no-video-title-show");
-        _mediaPlayer = new MediaPlayer(_libVLC) { Volume = _volume };
+        _libVLC = new LibVLC(
+            "--no-video-title-show",
+            "--aout=mmdevice",
+            "--mmdevice-volume=1.0"
+        );
+        _mediaPlayer = new MediaPlayer(_libVLC)
+        {
+            Volume = _volume,
+            EnableHardwareDecoding = true
+        };
         SubscribeToEvents();
     }
 
@@ -71,6 +79,9 @@ public partial class PlayerViewModel : ObservableObject, IDisposable
         {
             IsPlaying = true;
             HasMedia = true;
+            // Re-apply audio settings when playback starts to avoid silent playback
+            _mediaPlayer.Volume = Volume;
+            _mediaPlayer.Mute = IsMuted;
             StatusText = $"Reproduciendo: {CurrentChannelName}";
         });
 
@@ -118,12 +129,25 @@ public partial class PlayerViewModel : ObservableObject, IDisposable
 
     private void RefreshTracks()
     {
+        // --- Audio Tracks ---
         var currentAudioId = _mediaPlayer.AudioTrack;
         AudioTracks.Clear();
         foreach (var t in _mediaPlayer.AudioTrackDescription ?? [])
             AudioTracks.Add(new TrackInfo { Id = t.Id, Name = t.Name ?? $"Pista {t.Id}" });
-        SelectedAudioTrack = AudioTracks.FirstOrDefault(t => t.Id == currentAudioId);
 
+        // Select current audio track; if it's "Disable" (-1), pick the first real track
+        SelectedAudioTrack = AudioTracks.FirstOrDefault(t => t.Id == currentAudioId);
+        if ((SelectedAudioTrack is null || SelectedAudioTrack.Id == -1) && AudioTracks.Count > 1)
+        {
+            var firstReal = AudioTracks.FirstOrDefault(t => t.Id > 0);
+            if (firstReal is not null)
+            {
+                SelectedAudioTrack = firstReal;
+                _mediaPlayer.SetAudioTrack(firstReal.Id);
+            }
+        }
+
+        // --- Subtitle Tracks ---
         var currentSpuId = _mediaPlayer.Spu;
         SubtitleTracks.Clear();
         foreach (var t in _mediaPlayer.SpuDescription ?? [])

@@ -68,38 +68,87 @@ public partial class MainWindow : Window
             _vm.PlayChannel(channel);
     }
 
+    private void CategoryTab_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is System.Windows.Controls.Primitives.ToggleButton btn &&
+            btn.Tag is Models.ContentCategory category)
+        {
+            _vm.SelectedCategory = category;
+        }
+    }
+
     #region PiP
 
-    private void PiP_Click(object sender, RoutedEventArgs e)
+    private bool _isClosingPiP;
+
+    private async void PiP_Click(object sender, RoutedEventArgs e)
     {
         if (_pipWindow is not null)
         {
             ClosePiP();
             return;
         }
-        OpenPiP();
+        await OpenPiPAsync();
     }
 
-    private void OpenPiP()
+    private async Task OpenPiPAsync()
     {
-        VideoView.MediaPlayer = null;
+        var mediaPlayer = _vm.Player.VlcMediaPlayer;
 
+        // 1. Create PiP window and show it (do NOT detach from main yet)
         _pipWindow = new PiPWindow();
         _pipWindow.Closed += (_, _) => ClosePiP();
-        _pipWindow.VideoViewControl.MediaPlayer = _vm.Player.VlcMediaPlayer;
         _pipWindow.Show();
+
+        // 2. Wait for the PiP's VideoView.Loaded event specifically
+        //    This is when LibVLCSharp creates its internal ForegroundWindow HWND
+        var tcs = new TaskCompletionSource();
+        if (_pipWindow.VideoViewControl.IsLoaded)
+        {
+            tcs.TrySetResult();
+        }
+        else
+        {
+            _pipWindow.VideoViewControl.Loaded += (_, _) => tcs.TrySetResult();
+        }
+        await tcs.Task;
+
+        // 3. Yield to ensure HWND is fully initialized
+        await Dispatcher.InvokeAsync(() => { }, System.Windows.Threading.DispatcherPriority.Background);
+
+        // 4. Atomic swap: detach from main → attach to PiP (no delay between!)
+        //    Delays let VLC lose the rendering context
+        if (_pipWindow is not null)
+        {
+            VideoView.MediaPlayer = null;
+            _pipWindow.VideoViewControl.MediaPlayer = mediaPlayer;
+        }
     }
 
     private void ClosePiP()
     {
-        if (_pipWindow is null) return;
+        if (_pipWindow is null || _isClosingPiP) return;
+        _isClosingPiP = true;
 
-        _pipWindow.VideoViewControl.MediaPlayer = null;
-        if (_pipWindow.IsLoaded)
-            _pipWindow.Close();
-        _pipWindow = null;
+        try
+        {
+            var pip = _pipWindow;
+            _pipWindow = null;
 
-        VideoView.MediaPlayer = _vm.Player.VlcMediaPlayer;
+            // Atomic swap: detach from PiP → attach to main (no delay!)
+            pip.VideoViewControl.MediaPlayer = null;
+            VideoView.MediaPlayer = _vm.Player.VlcMediaPlayer;
+
+            // Close the window
+            if (pip.IsLoaded)
+            {
+                try { pip.Close(); } catch { /* already closed */ }
+            }
+        }
+        finally
+        {
+            _isClosingPiP = false;
+        }
     }
 
     #endregion

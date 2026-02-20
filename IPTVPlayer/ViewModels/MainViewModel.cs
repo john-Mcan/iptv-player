@@ -17,7 +17,10 @@ public partial class MainViewModel : ObservableObject
     private string _searchText = string.Empty;
 
     [ObservableProperty]
-    private ObservableCollection<ChannelGroup> _channelGroups = new();
+    private ObservableCollection<ContentCategory> _categories = new();
+
+    [ObservableProperty]
+    private ContentCategory? _selectedCategory;
 
     [ObservableProperty]
     private ObservableCollection<ChannelGroup> _filteredGroups = new();
@@ -46,12 +49,14 @@ public partial class MainViewModel : ObservableObject
             IsLoading = true;
             ErrorMessage = string.Empty;
 
-            var groups = await _playlistService.LoadPlaylistAsync(PlaylistUrl);
-            ChannelGroups = new ObservableCollection<ChannelGroup>(groups);
-            TotalChannels = groups.Sum(g => g.Channels.Count);
-            ApplyFilter(SearchText);
+            var categories = await _playlistService.LoadPlaylistAsync(PlaylistUrl);
+            Categories = new ObservableCollection<ContentCategory>(categories);
+            TotalChannels = categories.Sum(c => c.TotalChannels);
 
-            Player.StatusText = $"Playlist cargada: {TotalChannels} canales";
+            // Select first category by default
+            SelectedCategory = Categories.FirstOrDefault();
+
+            Player.StatusText = $"Playlist cargada: {TotalChannels} canales en {Categories.Count} categorías";
         }
         catch (Exception ex)
         {
@@ -64,23 +69,33 @@ public partial class MainViewModel : ObservableObject
         }
     }
 
-    partial void OnSearchTextChanged(string value) => ApplyFilter(value);
+    partial void OnSearchTextChanged(string value) => ApplyFilter();
 
-    private void ApplyFilter(string search)
+    partial void OnSelectedCategoryChanged(ContentCategory? value) => ApplyFilter();
+
+    private void ApplyFilter()
     {
-        if (string.IsNullOrWhiteSpace(search))
+        if (SelectedCategory is null)
         {
-            FilteredGroups = new ObservableCollection<ChannelGroup>(ChannelGroups);
+            FilteredGroups = new ObservableCollection<ChannelGroup>();
             return;
         }
 
-        var filtered = ChannelGroups
+        var groups = SelectedCategory.Groups;
+
+        if (string.IsNullOrWhiteSpace(SearchText))
+        {
+            FilteredGroups = new ObservableCollection<ChannelGroup>(groups);
+            return;
+        }
+
+        var filtered = groups
             .Select(g => new ChannelGroup
             {
                 Name = g.Name,
                 Channels = new ObservableCollection<Channel>(
                     g.Channels.Where(c =>
-                        c.Name.Contains(search, StringComparison.OrdinalIgnoreCase)))
+                        c.Name.Contains(SearchText, StringComparison.OrdinalIgnoreCase)))
             })
             .Where(g => g.Channels.Count > 0)
             .ToList();
