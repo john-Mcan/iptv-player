@@ -38,6 +38,9 @@ public partial class PlayerViewModel : ObservableObject, IDisposable
     private string _currentChannelName = string.Empty;
 
     [ObservableProperty]
+    private string _currentUrl = string.Empty;
+
+    [ObservableProperty]
     private ObservableCollection<TrackInfo> _audioTracks = new();
 
     [ObservableProperty]
@@ -158,6 +161,7 @@ public partial class PlayerViewModel : ObservableObject, IDisposable
     public void PlayChannel(Channel channel)
     {
         CurrentChannelName = channel.Name;
+        CurrentUrl = channel.Url;
         StatusText = $"Cargando: {channel.Name}...";
 
         using var media = new Media(_libVLC, channel.Url, FromType.FromLocation);

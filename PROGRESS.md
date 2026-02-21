@@ -19,9 +19,9 @@ La aplicacion compila y ejecuta correctamente. Todas las funcionalidades core es
 - [x] Deteccion automatica live vs on-demand
 - [x] Selector de pistas de audio multiple
 - [x] Selector de subtitulos multiple
-- [x] Picture-in-Picture (ventana Topmost, sin bordes, arrastrable, redimensionable)
-- [x] Transferencia de MediaPlayer entre VideoViews (main <-> PiP)
-- [x] Pantalla completa (F11 / boton) con ocultamiento de UI
+- [x] Picture-in-Picture (ventana Topmost, sin bordes, arrastrable, redimensionable) — usa VideoView con overlay dentro de ForegroundWindow para resolver airspace problem
+- [x] Transferencia de MediaPlayer entre VideoViews (main <-> PiP) — PiP usa LibVLC/MediaPlayer propio, sincroniza posicion al cerrar
+- [x] Pantalla completa (F11 / boton) con ocultamiento de UI — controles overlay dentro de VideoView.Content (sin ventana separada)
 - [x] Busqueda/filtro de canales en tiempo real
 - [x] Tema oscuro con estilos personalizados (sliders, botones, TreeView)
 - [x] Iconografia con Segoe MDL2 Assets
@@ -51,7 +51,7 @@ La aplicacion compila y ejecuta correctamente. Todas las funcionalidades core es
 - [ ] **Actualizacion automatica de playlist**: Recargar periodicamente la playlist para detectar cambios
 - [ ] **Selector de calidad de video**: Cuando el stream ofrece multiples calidades (adaptive bitrate), permitir seleccion manual
 - [ ] **Grabacion de stream**: Capacidad de grabar el stream actual a un archivo local (LibVLC lo soporta nativamente)
-- [ ] **Controles en fullscreen**: Overlay de controles que aparece al mover el mouse y se oculta tras inactividad
+- [x] **Controles en fullscreen**: Overlay de controles que aparece al mover el mouse y se oculta tras inactividad
 - [ ] **Menu contextual en canales**: Click derecho para copiar URL, agregar a favoritos, ver informacion del stream
 
 ### Prioridad baja

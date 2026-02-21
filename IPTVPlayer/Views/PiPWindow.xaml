@@ -9,29 +9,35 @@
         Background="Black"
         MinWidth="240" MinHeight="135"
         ShowInTaskbar="False">
-    <Grid>
-        <vlc:VideoView x:Name="PiPVideoView" />
 
-        <Button x:Name="CloseBtn"
-                Click="CloseButton_Click"
-                HorizontalAlignment="Right"
-                VerticalAlignment="Top"
-                Margin="0,4,4,0"
-                Width="28" Height="28"
-                Opacity="0"
-                Panel.ZIndex="10"
-                Cursor="Hand">
-            <Button.Template>
-                <ControlTemplate TargetType="Button">
-                    <Border Background="#CC000000" CornerRadius="14">
-                        <TextBlock Text="&#x2715;" Foreground="White"
-                                   FontSize="13" HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                    </Border>
-                </ControlTemplate>
-            </Button.Template>
-        </Button>
+    <vlc:VideoView x:Name="PipVideoView">
+        <!-- Overlay inside VideoView.Content: rendered by ForegroundWindow above the video,
+             solving the airspace problem. Background #01000000 enables mouse hit-testing
+             while remaining visually transparent. -->
+        <Grid Background="#01000000"
+              MouseLeftButtonDown="Overlay_MouseLeftButtonDown"
+              MouseEnter="Overlay_MouseEnter"
+              MouseLeave="Overlay_MouseLeave"
+              MouseWheel="Overlay_MouseWheel">
 
-        <Border x:Name="HoverOverlay" Background="Transparent" Panel.ZIndex="5"
-                MouseEnter="Overlay_MouseEnter" MouseLeave="Overlay_MouseLeave" />
-    </Grid>
+            <Button x:Name="CloseBtn"
+                    Click="CloseButton_Click"
+                    HorizontalAlignment="Right"
+                    VerticalAlignment="Top"
+                    Margin="0,4,4,0"
+                    Width="28" Height="28"
+                    Opacity="0"
+                    Panel.ZIndex="10"
+                    Cursor="Hand">
+                <Button.Template>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="#CC000000" CornerRadius="14">
+                            <TextBlock Text="&#x2715;" Foreground="White"
+                                       FontSize="13" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                    </ControlTemplate>
+                </Button.Template>
+            </Button>
+        </Grid>
+    </vlc:VideoView>
 </Window>
