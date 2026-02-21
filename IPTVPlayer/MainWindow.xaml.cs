@@ -125,11 +125,7 @@ public partial class MainWindow : Window
         _pipWindow.PiPClosedWithTime += (pipTimeMs) =>
         {
             VideoView.MediaPlayer = _vm.Player.VlcMediaPlayer;
-
-            if (pipTimeMs > 0 && _vm.Player.VlcMediaPlayer.Media != null)
-                _vm.Player.VlcMediaPlayer.Time = pipTimeMs;
-
-            _vm.Player.VlcMediaPlayer.Play();
+            _vm.Player.ResumeFromPiP(pipTimeMs);
             _pipWindow = null;
         };
 

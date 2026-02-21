@@ -5,21 +5,19 @@
         Title="PiP" Width="400" Height="225"
         WindowStyle="None"
         Topmost="True"
-        ResizeMode="CanResizeWithGrip"
+        ResizeMode="NoResize"
         Background="Black"
         MinWidth="240" MinHeight="135"
         ShowInTaskbar="False">
 
     <vlc:VideoView x:Name="PipVideoView">
-        <!-- Overlay inside VideoView.Content: rendered by ForegroundWindow above the video,
-             solving the airspace problem. Background #01000000 enables mouse hit-testing
-             while remaining visually transparent. -->
         <Grid Background="#01000000"
               MouseLeftButtonDown="Overlay_MouseLeftButtonDown"
               MouseEnter="Overlay_MouseEnter"
               MouseLeave="Overlay_MouseLeave"
               MouseWheel="Overlay_MouseWheel">
 
+            <!-- Close button (top-right, appears on hover) -->
             <Button x:Name="CloseBtn"
                     Click="CloseButton_Click"
                     HorizontalAlignment="Right"
@@ -38,6 +36,56 @@
                     </ControlTemplate>
                 </Button.Template>
             </Button>
+
+            <!-- Volume controls (bottom, appears on hover) -->
+            <Border x:Name="ControlsPanel"
+                    VerticalAlignment="Bottom"
+                    HorizontalAlignment="Stretch"
+                    Opacity="0" Margin="0"
+                    Panel.ZIndex="10">
+                <Border.Background>
+                    <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                        <GradientStop Color="#00000000" Offset="0"/>
+                        <GradientStop Color="#AA000000" Offset="1"/>
+                    </LinearGradientBrush>
+                </Border.Background>
+                <StackPanel Orientation="Horizontal" Margin="6,12,6,5"
+                            HorizontalAlignment="Left">
+                    <Button x:Name="MuteBtn" Click="MuteBtn_Click"
+                            Cursor="Hand" Margin="0,0,2,0">
+                        <Button.Template>
+                            <ControlTemplate TargetType="Button">
+                                <Border x:Name="Bd" Background="Transparent"
+                                        CornerRadius="3" Padding="4,3">
+                                    <TextBlock x:Name="MuteIcon" Text="&#xE767;"
+                                               FontFamily="Segoe MDL2 Assets" FontSize="13"
+                                               Foreground="White"
+                                               HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                </Border>
+                                <ControlTemplate.Triggers>
+                                    <Trigger Property="IsMouseOver" Value="True">
+                                        <Setter TargetName="Bd" Property="Background" Value="#33FFFFFF"/>
+                                    </Trigger>
+                                </ControlTemplate.Triggers>
+                            </ControlTemplate>
+                        </Button.Template>
+                    </Button>
+                    <Slider x:Name="PipVolumeSlider"
+                            Style="{StaticResource VolumeSlider}"
+                            Width="65" Maximum="100"
+                            VerticalAlignment="Center"
+                            ValueChanged="PipVolumeSlider_ValueChanged"/>
+                </StackPanel>
+            </Border>
+
+            <!-- Invisible resize grip (bottom-right corner, cursor hints resizability) -->
+            <Border HorizontalAlignment="Right" VerticalAlignment="Bottom"
+                    Width="14" Height="14" Cursor="SizeNWSE"
+                    Background="Transparent"
+                    Panel.ZIndex="20"
+                    MouseLeftButtonDown="ResizeGrip_MouseDown"
+                    MouseMove="ResizeGrip_MouseMove"
+                    MouseLeftButtonUp="ResizeGrip_MouseUp"/>
         </Grid>
     </vlc:VideoView>
 </Window>

@@ -169,6 +169,19 @@ public partial class PlayerViewModel : ObservableObject, IDisposable
         _mediaPlayer.Play(media);
     }
 
+    public void ResumeFromPiP(long pipTimeMs)
+    {
+        StatusText = $"Cargando: {CurrentChannelName}...";
+
+        using var media = new Media(_libVLC, CurrentUrl, FromType.FromLocation);
+        media.AddOption(":network-caching=1000");
+
+        if (!IsLive && pipTimeMs > 0)
+            media.AddOption($":start-time={pipTimeMs / 1000}");
+
+        _mediaPlayer.Play(media);
+    }
+
     [RelayCommand]
     private void TogglePlayPause()
     {

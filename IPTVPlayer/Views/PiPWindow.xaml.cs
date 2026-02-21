@@ -1,5 +1,6 @@
 using System;
 using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media.Animation;
 using LibVLCSharp.Shared;
@@ -11,6 +12,10 @@ public partial class PiPWindow : Window, IDisposable
     private readonly LibVLC _libVLC;
     private readonly MediaPlayer _mediaPlayer;
     private bool _isDisposed;
+    private bool _isMuted;
+
+    private Point _resizeStart;
+    private double _resizeStartWidth, _resizeStartHeight;
 
     public event Action<long>? PiPClosedWithTime;
 
@@ -32,6 +37,8 @@ public partial class PiPWindow : Window, IDisposable
             EnableHardwareDecoding = true,
             Volume = volume
         };
+
+        PipVolumeSlider.Value = volume;
 
         Loaded += (_, _) =>
         {
@@ -65,6 +72,8 @@ public partial class PiPWindow : Window, IDisposable
         _libVLC.Dispose();
     }
 
+    #region Drag & Close
+
     private void Overlay_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
     {
         if (e.ClickCount == 2)
@@ -78,21 +87,80 @@ public partial class PiPWindow : Window, IDisposable
 
     private void CloseButton_Click(object sender, RoutedEventArgs e) => Close();
 
+    #endregion
+
+    #region Resize
+
+    private void ResizeGrip_MouseDown(object sender, MouseButtonEventArgs e)
+    {
+        if (e.LeftButton != MouseButtonState.Pressed) return;
+
+        var grip = (UIElement)sender;
+        _resizeStart = grip.PointToScreen(e.GetPosition(grip));
+        _resizeStartWidth = ActualWidth;
+        _resizeStartHeight = ActualHeight;
+        grip.CaptureMouse();
+        e.Handled = true;
+    }
+
+    private void ResizeGrip_MouseMove(object sender, MouseEventArgs e)
+    {
+        var grip = (UIElement)sender;
+        if (!grip.IsMouseCaptured) return;
+
+        var current = grip.PointToScreen(e.GetPosition(grip));
+        Width = Math.Max(MinWidth, _resizeStartWidth + (current.X - _resizeStart.X));
+        Height = Math.Max(MinHeight, _resizeStartHeight + (current.Y - _resizeStart.Y));
+    }
+
+    private void ResizeGrip_MouseUp(object sender, MouseButtonEventArgs e)
+    {
+        ((UIElement)sender).ReleaseMouseCapture();
+    }
+
+    #endregion
+
+    #region Volume
+
     private void Overlay_MouseWheel(object sender, MouseWheelEventArgs e)
     {
-        int newVolume = _mediaPlayer.Volume + (e.Delta > 0 ? 5 : -5);
-        _mediaPlayer.Volume = Math.Clamp(newVolume, 0, 100);
+        int newVolume = Math.Clamp(_mediaPlayer.Volume + (e.Delta > 0 ? 5 : -5), 0, 100);
+        PipVolumeSlider.Value = newVolume;
     }
+
+    private void MuteBtn_Click(object sender, RoutedEventArgs e)
+    {
+        _isMuted = !_isMuted;
+        _mediaPlayer.Mute = _isMuted;
+
+        var icon = (TextBlock)MuteBtn.Template.FindName("MuteIcon", MuteBtn);
+        if (icon != null)
+            icon.Text = _isMuted ? "\uE74F" : "\uE767";
+    }
+
+    private void PipVolumeSlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+    {
+        if (_mediaPlayer != null && !_isDisposed)
+            _mediaPlayer.Volume = (int)e.NewValue;
+    }
+
+    #endregion
+
+    #region Hover show/hide controls
 
     private void Overlay_MouseEnter(object sender, MouseEventArgs e)
     {
-        var anim = new DoubleAnimation(1.0, TimeSpan.FromMilliseconds(150));
-        CloseBtn.BeginAnimation(OpacityProperty, anim);
+        var fadeIn = new DoubleAnimation(1.0, TimeSpan.FromMilliseconds(150));
+        CloseBtn.BeginAnimation(OpacityProperty, fadeIn);
+        ControlsPanel.BeginAnimation(OpacityProperty, fadeIn);
     }
 
     private void Overlay_MouseLeave(object sender, MouseEventArgs e)
     {
-        var anim = new DoubleAnimation(0.0, TimeSpan.FromMilliseconds(300));
-        CloseBtn.BeginAnimation(OpacityProperty, anim);
+        var fadeOut = new DoubleAnimation(0.0, TimeSpan.FromMilliseconds(300));
+        CloseBtn.BeginAnimation(OpacityProperty, fadeOut);
+        ControlsPanel.BeginAnimation(OpacityProperty, fadeOut);
     }
+
+    #endregion
 }
