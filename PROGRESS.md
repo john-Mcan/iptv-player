@@ -1,13 +1,14 @@
 # IPTV Player - Progreso y Roadmap
 
-## Estado actual: MVP funcional
+## Estado actual: MVP funcional con persistencia y reconexion — testeado y estable
 
-La aplicacion compila y ejecuta correctamente. Todas las funcionalidades core estan implementadas.
+La aplicacion compila y ejecuta correctamente. Todas las funcionalidades core estan implementadas y verificadas en pruebas reales.
 
 ---
 
 ## Completado
 
+### Base
 - [x] Proyecto .NET 8 WPF configurado con dependencias NuGet (LibVLCSharp, CommunityToolkit.Mvvm)
 - [x] Modelos de datos: Channel, ChannelGroup, TrackInfo
 - [x] Parser M3U con soporte para atributos EXTINF (tvg-name, tvg-logo, group-title, tvg-id)
@@ -16,12 +17,9 @@ La aplicacion compila y ejecuta correctamente. Todas las funcionalidades core es
 - [x] Integracion LibVLCSharp: inicializacion, reproduccion, eventos
 - [x] Controles de reproduccion: Play/Pause, Stop, volumen, mute
 - [x] Barra de progreso/seek para contenido on-demand
-- [x] Deteccion automatica live vs on-demand
+- [x] Deteccion automatica live vs on-demand (indicador "EN VIVO")
 - [x] Selector de pistas de audio multiple
 - [x] Selector de subtitulos multiple
-- [x] Picture-in-Picture (ventana Topmost, sin bordes, arrastrable, redimensionable) — usa VideoView con overlay dentro de ForegroundWindow para resolver airspace problem
-- [x] Transferencia de MediaPlayer entre VideoViews (main <-> PiP) — PiP usa LibVLC/MediaPlayer propio, sincroniza posicion al cerrar
-- [x] Pantalla completa (F11 / boton) con ocultamiento de UI — controles overlay dentro de VideoView.Content (sin ventana separada)
 - [x] Busqueda/filtro de canales en tiempo real
 - [x] Tema oscuro con estilos personalizados (sliders, botones, TreeView)
 - [x] Iconografia con Segoe MDL2 Assets
@@ -29,6 +27,60 @@ La aplicacion compila y ejecuta correctamente. Todas las funcionalidades core es
 - [x] Manejo basico de errores (carga fallida, stream con error)
 - [x] Atajos de teclado (F11, Escape, Space, Enter)
 - [x] Panel lateral redimensionable con GridSplitter
+- [x] Logos de canales cargados de forma asincrona desde tvg-logo
+
+### Pantalla completa
+- [x] Entrada/salida via boton o F11/Escape
+- [x] Oculta toda la chrome (sidebar, topbar, controles)
+- [x] Overlay de controles dentro del VideoView.Content (sin ventana separada — resuelve airspace problem y conflicto de z-order)
+- [x] Auto-hide: controles aparecen al mover el mouse, se ocultan tras 3 segundos de inactividad con fade-out
+- [x] Cursor se oculta junto con los controles
+- [x] Doble clic en el video para salir del fullscreen
+- [x] Atajos Escape/F11/Space funcionales desde la ventana principal
+
+### Picture-in-Picture
+- [x] Ventana borderless (sin decoracion DWM), Topmost, siempre visible
+- [x] Arrastrable desde cualquier punto del video
+- [x] Redimensionable via grip invisible en esquina inferior derecha (cursor SizeNWSE)
+- [x] Controles de volumen (slider + mute) aparecen/desaparecen con hover (fade in/out)
+- [x] Boton de cierre aparece/desaparece con hover (esquina superior derecha)
+- [x] Doble clic para cerrar y volver a ventana principal
+- [x] Scroll de mouse ajusta volumen
+- [x] PiP usa instancia propia de LibVLC/MediaPlayer (requerido por LibVLC 3 — el MediaPlayer esta vinculado al HWND al inicio de reproduccion)
+- [x] Al abrir PiP: captura posicion actual y retoma desde ahi
+- [x] Al cerrar PiP: retorna a ventana principal con conexion fresca al stream
+  - VOD: retoma desde la posicion en que estaba el PiP (via `:start-time`)
+  - Live: reconecta al stream en vivo directamente (posicion irrelevante en live)
+
+### Reconexion automatica al stream
+- [x] Deteccion de desconexion via eventos `EncounteredError` y `EndReached` de LibVLC
+- [x] Reintentos automaticos con backoff exponencial (1s, 2s, 4s, 8s... hasta 30s max)
+- [x] Maximo 10 intentos de reconexion antes de reportar fallo definitivo
+- [x] Distincion entre stop manual del usuario vs desconexion involuntaria
+- [x] Reconexion en live streams cuando `EndReached` indica desconexion
+- [x] Reconexion en VOD con reanudacion desde la ultima posicion conocida (`:start-time`)
+- [x] Cancelacion de reconexion al cambiar de canal o detener manualmente
+- [x] Overlay visual con progreso de reconexion (icono + barra + texto + boton cancelar)
+- [x] Llamadas a LibVLC desde `Task.Run` para respetar la restriccion de threading de LibVLCSharp
+
+### Persistencia de configuracion
+- [x] Modelo `AppSettings` con todas las propiedades persistibles
+- [x] `SettingsService` con load/save en `%APPDATA%/IPTVPlayer/settings.json` via System.Text.Json
+- [x] Guarda: ultima URL, historial de URLs recientes (5), volumen, mute, dimensiones/posicion de ventana, ancho del sidebar
+- [x] Restaura al iniciar: posicion/tamano de ventana, volumen, URL, carga automatica de playlist
+- [x] Auto-load de la ultima playlist al iniciar la aplicacion
+
+### Mejora UX del input de URL
+- [x] ComboBox editable reemplaza el TextBox de URL
+- [x] Dropdown muestra las ultimas 5 URLs usadas
+- [x] Al cargar una playlist, la URL se agrega al historial automaticamente (duplicados eliminados)
+- [x] Enter en el ComboBox cierra el dropdown y carga la playlist
+- [x] Template custom oscuro con borde accent al hover/focus
+
+### Rediseño visual
+- [x] Paleta de colores actualizada: base gris neutro + acentos naranja (inspirado en el ave Chucao)
+- [x] Icono de la app: Chucao como DrawingImage vectorial en App.xaml + SVG de referencia
+- [x] Colores: BgBrush #1A1A1E, SurfaceBrush #262629, AccentBrush #E8752A, AccentHoverBrush #F0924A
 
 ---
 
@@ -36,35 +88,40 @@ La aplicacion compila y ejecuta correctamente. Todas las funcionalidades core es
 
 ### Prioridad alta
 
-- [ ] **Persistencia de configuracion**: Guardar ultima playlist cargada, volumen, tamano de ventana (usar `Settings` o archivo JSON en AppData)
-- [ ] **Manejo robusto de errores de red**: Reintentos automaticos en streams que se desconectan, timeout configurable, reconexion al canal actual
-- [ ] **EPG (Electronic Program Guide)**: Soporte para guias de programacion XMLTV vinculadas a la playlist M3U, mostrar programa actual y siguiente
-- [ ] **Favoritos**: Permitir marcar canales como favoritos con acceso rapido
+- [ ] **EPG (Electronic Program Guide)**: Soporte para guias de programacion XMLTV vinculadas a la playlist M3U
+- [ ] **Favoritos**: Marcar canales como favoritos con acceso rapido
 - [ ] **Historial reciente**: Ultimos canales reproducidos para acceso rapido
-- [ ] **Icono de aplicacion**: Disenar e incluir icono .ico para el ejecutable y la barra de tareas
+- [ ] **Icono .ico para el ejecutable**: Convertir el SVG del Chucao a formato .ico multi-resolucion para el ejecutable y la barra de tareas de Windows
 
 ### Prioridad media
 
-- [ ] **Logos de canales**: Cargar y mostrar thumbnails/logos desde las URLs `tvg-logo` en la lista de canales
 - [ ] **Ordenamiento de canales**: Opciones de ordenar por nombre, grupo, o posicion original
 - [ ] **Multiples playlists**: Gestionar varias playlists guardadas con nombres personalizados
 - [ ] **Actualizacion automatica de playlist**: Recargar periodicamente la playlist para detectar cambios
-- [ ] **Selector de calidad de video**: Cuando el stream ofrece multiples calidades (adaptive bitrate), permitir seleccion manual
-- [ ] **Grabacion de stream**: Capacidad de grabar el stream actual a un archivo local (LibVLC lo soporta nativamente)
-- [x] **Controles en fullscreen**: Overlay de controles que aparece al mover el mouse y se oculta tras inactividad
-- [ ] **Menu contextual en canales**: Click derecho para copiar URL, agregar a favoritos, ver informacion del stream
+- [ ] **Selector de calidad de video**: Seleccion manual cuando el stream ofrece multiple bitrate (adaptive)
+- [ ] **Grabacion de stream**: Grabar el stream actual a archivo local (LibVLC lo soporta nativamente)
+- [ ] **Menu contextual en canales**: Click derecho para copiar URL, agregar a favoritos, ver info del stream
 
 ### Prioridad baja
 
-- [ ] **Soporte multi-idioma (i18n)**: Interfaz traducible, actualmente todo en espanol
+- [ ] **Soporte multi-idioma (i18n)**: Interfaz traducible
 - [ ] **Temas claros/oscuros**: Opcion para cambiar entre tema oscuro y claro
-- [ ] **Instalador MSI/MSIX**: Empaquetado como instalador Windows con acceso directo en menu inicio
-- [ ] **Auto-update**: Mecanismo para verificar y descargar nuevas versiones automaticamente
-- [ ] **Soporte para playlist con DRM**: Manejo de streams protegidos con tokens o headers de autenticacion
-- [ ] **Cast/DLNA**: Enviar el stream a dispositivos compatibles en la red local
-- [ ] **Ecualizador de audio**: Ajustes de ecualizacion usando las capacidades de LibVLC
-- [ ] **Capturas de pantalla**: Boton para tomar screenshot del video actual
-- [ ] **Picture-in-Picture mejorado**: Controles minimos dentro de la ventana PiP (play/pause, canal anterior/siguiente)
-- [ ] **Rendimiento con playlists grandes**: Virtualizacion del TreeView para listas con miles de canales
-- [ ] **Logs y diagnostico**: Sistema de logging para depuracion de problemas de conectividad/reproduccion
-- [ ] **Tests unitarios**: Cobertura para el parser M3U, servicios, y ViewModels
+- [ ] **Instalador MSI/MSIX**: Empaquetado con acceso directo en menu inicio
+- [ ] **Auto-update**: Verificar y descargar nuevas versiones automaticamente
+- [ ] **Soporte para playlist con DRM**: Streams protegidos con tokens o headers de autenticacion
+- [ ] **Cast/DLNA**: Enviar stream a dispositivos en la red local
+- [ ] **Ecualizador de audio**: Ajustes de ecualizacion via LibVLC
+- [ ] **Capturas de pantalla**: Screenshot del video actual
+- [ ] **Rendimiento con playlists grandes**: Virtualizacion del TreeView para miles de canales
+- [ ] **Logs y diagnostico**: Sistema de logging para depuracion
+- [ ] **Tests unitarios**: Cobertura para parser M3U, servicios y ViewModels
+
+---
+
+## Notas tecnicas
+
+- **Airspace problem (LibVLC 3)**: Todo overlay de controles debe estar dentro del `VideoView.Content`. El `ForegroundWindow` interno de LibVLCSharp renderiza el contenido WPF sobre el HWND nativo de VLC. No usar ventanas WPF separadas como overlays.
+- **PiP y transferencia de MediaPlayer**: LibVLC 3 vincula el MediaPlayer a un HWND especifico al iniciar reproduccion. No es posible mover un player en ejecucion entre ventanas. El approach correcto es una instancia independiente de LibVLC+MediaPlayer en el PiP.
+- **Seeking en live streams**: `MediaPlayer.Time` y `Position` no son funcionales en streams en vivo (HLS/RTMP). Al retornar de PiP en contenido live se hace una reconexion fresca al stream.
+- **Threading en LibVLCSharp**: NUNCA llamar metodos de LibVLC directamente desde event handlers de LibVLC. Usar `ThreadPool.QueueUserWorkItem` o `Task.Run` para evitar deadlocks. La reconexion automatica usa `Task.Run` con `CancellationTokenSource` para manejar esto correctamente.
+- **Migracion a LibVLC 4**: LibVLC 4 resolveria el airspace problem y permitiria PiP seamless via Direct3D/OpenGL. A Feb 2026, LibVLC 4 esta al 72% del milestone y LibVLCSharp 4 solo tiene paquetes alpha. No apto para produccion aun.

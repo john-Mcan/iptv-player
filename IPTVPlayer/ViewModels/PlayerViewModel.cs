@@ -12,6 +12,13 @@ public partial class PlayerViewModel : ObservableObject, IDisposable
     private readonly LibVLC _libVLC;
     private readonly MediaPlayer _mediaPlayer;
     private bool _isSeeking;
+    private bool _userRequestedStop;
+    private int _reconnectAttempts;
+    private CancellationTokenSource? _reconnectCts;
+    private long _lastKnownTimeMs;
+
+    private const int MaxReconnectAttempts = 10;
+    private const int MaxBackoffMs = 30_000;
 
     [ObservableProperty]
     private bool _isPlaying;
@@ -58,6 +65,12 @@ public partial class PlayerViewModel : ObservableObject, IDisposable
     [ObservableProperty]
     private bool _hasMedia;
 
+    [ObservableProperty]
+    private bool _isReconnecting;
+
+    [ObservableProperty]
+    private string _reconnectStatus = string.Empty;
+
     public MediaPlayer VlcMediaPlayer => _mediaPlayer;
 
     public PlayerViewModel()
@@ -82,9 +95,16 @@ public partial class PlayerViewModel : ObservableObject, IDisposable
         {
             IsPlaying = true;
             HasMedia = true;
-            // Re-apply audio settings when playback starts to avoid silent playback
             _mediaPlayer.Volume = Volume;
             _mediaPlayer.Mute = IsMuted;
+
+            if (IsReconnecting)
+            {
+                IsReconnecting = false;
+                ReconnectStatus = string.Empty;
+                _reconnectAttempts = 0;
+            }
+
             StatusText = $"Reproduciendo: {CurrentChannelName}";
         });
 
@@ -97,20 +117,25 @@ public partial class PlayerViewModel : ObservableObject, IDisposable
         _mediaPlayer.Stopped += (_, _) => Dispatch(() =>
         {
             IsPlaying = false;
-            HasMedia = false;
-            Position = 0;
-            CurrentTime = TimeSpan.Zero;
-            Duration = TimeSpan.Zero;
-            AudioTracks.Clear();
-            SubtitleTracks.Clear();
-            StatusText = "Detenido";
+            if (!IsReconnecting)
+            {
+                HasMedia = false;
+                Position = 0;
+                CurrentTime = TimeSpan.Zero;
+                Duration = TimeSpan.Zero;
+                AudioTracks.Clear();
+                SubtitleTracks.Clear();
+            }
+            if (_userRequestedStop)
+                StatusText = "Detenido";
         });
 
         _mediaPlayer.PositionChanged += (_, e) => Dispatch(() =>
         {
             if (!_isSeeking)
                 Position = e.Position * 100.0;
-            CurrentTime = TimeSpan.FromMilliseconds(_mediaPlayer.Time);
+            _lastKnownTimeMs = _mediaPlayer.Time;
+            CurrentTime = TimeSpan.FromMilliseconds(_lastKnownTimeMs);
         });
 
         _mediaPlayer.LengthChanged += (_, e) => Dispatch(() =>
@@ -124,21 +149,89 @@ public partial class PlayerViewModel : ObservableObject, IDisposable
 
         _mediaPlayer.EncounteredError += (_, _) => Dispatch(() =>
         {
-            StatusText = "Error al reproducir el stream";
             IsPlaying = false;
-            HasMedia = false;
+            if (!_userRequestedStop && !string.IsNullOrEmpty(CurrentUrl))
+                StartReconnect();
+            else
+            {
+                StatusText = "Error al reproducir el stream";
+                HasMedia = false;
+            }
         });
+
+        _mediaPlayer.EndReached += (_, _) => Dispatch(() =>
+        {
+            if (IsLive && !_userRequestedStop && !string.IsNullOrEmpty(CurrentUrl))
+                StartReconnect();
+            else
+            {
+                IsPlaying = false;
+                HasMedia = false;
+                StatusText = "Reproducción finalizada";
+            }
+        });
+    }
+
+    private void StartReconnect()
+    {
+        if (_reconnectAttempts >= MaxReconnectAttempts)
+        {
+            IsReconnecting = false;
+            ReconnectStatus = string.Empty;
+            HasMedia = false;
+            StatusText = $"No se pudo reconectar después de {MaxReconnectAttempts} intentos";
+            return;
+        }
+
+        _reconnectAttempts++;
+        IsReconnecting = true;
+        var delayMs = Math.Min(1000 * (int)Math.Pow(2, _reconnectAttempts - 1), MaxBackoffMs);
+        ReconnectStatus = $"Reconectando ({_reconnectAttempts}/{MaxReconnectAttempts})...";
+        StatusText = ReconnectStatus;
+
+        _reconnectCts?.Cancel();
+        _reconnectCts = new CancellationTokenSource();
+        var token = _reconnectCts.Token;
+        var url = CurrentUrl;
+        var isLive = IsLive;
+        var resumeTimeMs = _lastKnownTimeMs;
+
+        Task.Run(async () =>
+        {
+            try
+            {
+                await Task.Delay(delayMs, token);
+                if (token.IsCancellationRequested) return;
+
+                using var media = new Media(_libVLC, url, FromType.FromLocation);
+                media.AddOption(":network-caching=1000");
+                if (!isLive && resumeTimeMs > 0)
+                    media.AddOption($":start-time={resumeTimeMs / 1000}");
+                _mediaPlayer.Play(media);
+            }
+            catch (TaskCanceledException) { }
+        }, token);
+    }
+
+    [RelayCommand]
+    private void CancelReconnect()
+    {
+        _reconnectCts?.Cancel();
+        _reconnectCts = null;
+        _reconnectAttempts = 0;
+        IsReconnecting = false;
+        ReconnectStatus = string.Empty;
+        HasMedia = false;
+        StatusText = "Reconexión cancelada";
     }
 
     private void RefreshTracks()
     {
-        // --- Audio Tracks ---
         var currentAudioId = _mediaPlayer.AudioTrack;
         AudioTracks.Clear();
         foreach (var t in _mediaPlayer.AudioTrackDescription ?? [])
             AudioTracks.Add(new TrackInfo { Id = t.Id, Name = t.Name ?? $"Pista {t.Id}" });
 
-        // Select current audio track; if it's "Disable" (-1), pick the first real track
         SelectedAudioTrack = AudioTracks.FirstOrDefault(t => t.Id == currentAudioId);
         if ((SelectedAudioTrack is null || SelectedAudioTrack.Id == -1) && AudioTracks.Count > 1)
         {
@@ -150,7 +243,6 @@ public partial class PlayerViewModel : ObservableObject, IDisposable
             }
         }
 
-        // --- Subtitle Tracks ---
         var currentSpuId = _mediaPlayer.Spu;
         SubtitleTracks.Clear();
         foreach (var t in _mediaPlayer.SpuDescription ?? [])
@@ -160,6 +252,14 @@ public partial class PlayerViewModel : ObservableObject, IDisposable
 
     public void PlayChannel(Channel channel)
     {
+        _reconnectCts?.Cancel();
+        _reconnectCts = null;
+        _reconnectAttempts = 0;
+        IsReconnecting = false;
+        ReconnectStatus = string.Empty;
+        _userRequestedStop = false;
+        _lastKnownTimeMs = 0;
+
         CurrentChannelName = channel.Name;
         CurrentUrl = channel.Url;
         StatusText = $"Cargando: {channel.Name}...";
@@ -195,6 +295,12 @@ public partial class PlayerViewModel : ObservableObject, IDisposable
     [RelayCommand]
     private void Stop()
     {
+        _userRequestedStop = true;
+        _reconnectCts?.Cancel();
+        _reconnectCts = null;
+        _reconnectAttempts = 0;
+        IsReconnecting = false;
+        ReconnectStatus = string.Empty;
         _mediaPlayer.Stop();
     }
 
@@ -202,12 +308,16 @@ public partial class PlayerViewModel : ObservableObject, IDisposable
     private void ToggleMute()
     {
         IsMuted = !IsMuted;
-        _mediaPlayer.Mute = IsMuted;
     }
 
     partial void OnVolumeChanged(int value)
     {
         _mediaPlayer.Volume = value;
+    }
+
+    partial void OnIsMutedChanged(bool value)
+    {
+        _mediaPlayer.Mute = value;
     }
 
     partial void OnSelectedAudioTrackChanged(TrackInfo? value)
@@ -237,6 +347,7 @@ public partial class PlayerViewModel : ObservableObject, IDisposable
 
     public void Dispose()
     {
+        _reconnectCts?.Cancel();
         _mediaPlayer.Stop();
         _mediaPlayer.Dispose();
         _libVLC.Dispose();

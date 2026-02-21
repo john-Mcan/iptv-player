@@ -4,16 +4,79 @@
              xmlns:conv="clr-namespace:IPTVPlayer.Converters"
              StartupUri="MainWindow.xaml">
     <Application.Resources>
-        <!-- Colors -->
-        <SolidColorBrush x:Key="BgBrush" Color="#1A1A2E"/>
-        <SolidColorBrush x:Key="SurfaceBrush" Color="#252540"/>
-        <SolidColorBrush x:Key="SurfaceHighBrush" Color="#303050"/>
-        <SolidColorBrush x:Key="AccentBrush" Color="#7C3AED"/>
-        <SolidColorBrush x:Key="AccentHoverBrush" Color="#9B5AFF"/>
+        <!-- Colors — grey base + Chucao orange accents -->
+        <SolidColorBrush x:Key="BgBrush" Color="#1A1A1E"/>
+        <SolidColorBrush x:Key="SurfaceBrush" Color="#262629"/>
+        <SolidColorBrush x:Key="SurfaceHighBrush" Color="#353538"/>
+        <SolidColorBrush x:Key="AccentBrush" Color="#E8752A"/>
+        <SolidColorBrush x:Key="AccentHoverBrush" Color="#F0924A"/>
         <SolidColorBrush x:Key="TextBrush" Color="#E0E0E0"/>
-        <SolidColorBrush x:Key="TextDimBrush" Color="#8888A0"/>
-        <SolidColorBrush x:Key="BorderBrush" Color="#3A3A5A"/>
+        <SolidColorBrush x:Key="TextDimBrush" Color="#888890"/>
+        <SolidColorBrush x:Key="BorderBrush" Color="#3A3A3E"/>
         <SolidColorBrush x:Key="ErrorBrush" Color="#EF4444"/>
+
+        <!-- Chucao icon (DrawingImage for Window.Icon) -->
+        <DrawingImage x:Key="ChucaoIcon">
+            <DrawingImage.Drawing>
+                <DrawingGroup>
+                    <GeometryDrawing Brush="#7B5B3A">
+                        <GeometryDrawing.Geometry>
+                            <PathGeometry Figures="M33,14 L42,8 L39,17 L35,18 Z"/>
+                        </GeometryDrawing.Geometry>
+                    </GeometryDrawing>
+                    <GeometryDrawing Brush="#7B5B3A">
+                        <GeometryDrawing.Geometry>
+                            <EllipseGeometry Center="22,25" RadiusX="16" RadiusY="15"/>
+                        </GeometryDrawing.Geometry>
+                    </GeometryDrawing>
+                    <GeometryDrawing Brush="#5A4228">
+                        <GeometryDrawing.Geometry>
+                            <PathGeometry Figures="M10,15 C14,8 24,8 30,13 C24,10 14,10 10,15 Z"/>
+                        </GeometryDrawing.Geometry>
+                    </GeometryDrawing>
+                    <GeometryDrawing Brush="#9B7B5A">
+                        <GeometryDrawing.Geometry>
+                            <PathGeometry Figures="M28,14 C36,18 38,28 34,36 C38,30 38,18 32,12 Z"/>
+                        </GeometryDrawing.Geometry>
+                    </GeometryDrawing>
+                    <GeometryDrawing Brush="#E8752A">
+                        <GeometryDrawing.Geometry>
+                            <EllipseGeometry Center="18,28" RadiusX="9" RadiusY="10"/>
+                        </GeometryDrawing.Geometry>
+                    </GeometryDrawing>
+                    <GeometryDrawing Brush="White">
+                        <GeometryDrawing.Geometry>
+                            <GeometryGroup>
+                                <EllipseGeometry Center="12,34" RadiusX="1.2" RadiusY="1.2"/>
+                                <EllipseGeometry Center="16,36" RadiusX="1.2" RadiusY="1.2"/>
+                                <EllipseGeometry Center="20,36" RadiusX="1.2" RadiusY="1.2"/>
+                                <EllipseGeometry Center="24,34" RadiusX="1.2" RadiusY="1.2"/>
+                            </GeometryGroup>
+                        </GeometryDrawing.Geometry>
+                    </GeometryDrawing>
+                    <GeometryDrawing Brush="White">
+                        <GeometryDrawing.Geometry>
+                            <EllipseGeometry Center="15,17" RadiusX="3.2" RadiusY="3.2"/>
+                        </GeometryDrawing.Geometry>
+                    </GeometryDrawing>
+                    <GeometryDrawing Brush="#1A1A1E">
+                        <GeometryDrawing.Geometry>
+                            <EllipseGeometry Center="15,17" RadiusX="2" RadiusY="2"/>
+                        </GeometryDrawing.Geometry>
+                    </GeometryDrawing>
+                    <GeometryDrawing Brush="White">
+                        <GeometryDrawing.Geometry>
+                            <EllipseGeometry Center="14.2,16.2" RadiusX="0.7" RadiusY="0.7"/>
+                        </GeometryDrawing.Geometry>
+                    </GeometryDrawing>
+                    <GeometryDrawing Brush="#2D1F14">
+                        <GeometryDrawing.Geometry>
+                            <PathGeometry Figures="M7,19 L2,18 L7,16.5 Z"/>
+                        </GeometryDrawing.Geometry>
+                    </GeometryDrawing>
+                </DrawingGroup>
+            </DrawingImage.Drawing>
+        </DrawingImage>
 
         <!-- Converters -->
         <conv:BoolToVisibilityConverter x:Key="BoolToVis"/>
@@ -83,6 +146,73 @@
                                 CornerRadius="4" Padding="{TemplateBinding Padding}">
                             <ScrollViewer x:Name="PART_ContentHost"/>
                         </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Editable URL ComboBox -->
+        <Style x:Key="UrlCombo" TargetType="ComboBox">
+            <Setter Property="IsEditable" Value="True"/>
+            <Setter Property="Foreground" Value="{StaticResource TextBrush}"/>
+            <Setter Property="Background" Value="{StaticResource SurfaceBrush}"/>
+            <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="MaxDropDownHeight" Value="300"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ComboBox">
+                        <Grid>
+                            <ToggleButton x:Name="ToggleButton"
+                                          IsChecked="{Binding IsDropDownOpen, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}"
+                                          Focusable="False" ClickMode="Press">
+                                <ToggleButton.Template>
+                                    <ControlTemplate TargetType="ToggleButton">
+                                        <Border x:Name="Bd" Background="{StaticResource SurfaceBrush}"
+                                                BorderBrush="{StaticResource BorderBrush}" BorderThickness="1"
+                                                CornerRadius="4">
+                                            <TextBlock Text="&#xE70D;" FontFamily="Segoe MDL2 Assets" FontSize="10"
+                                                       Foreground="{StaticResource TextDimBrush}"
+                                                       HorizontalAlignment="Right" VerticalAlignment="Center"
+                                                       Margin="0,0,8,0"/>
+                                        </Border>
+                                        <ControlTemplate.Triggers>
+                                            <Trigger Property="IsMouseOver" Value="True">
+                                                <Setter TargetName="Bd" Property="BorderBrush" Value="{StaticResource AccentBrush}"/>
+                                            </Trigger>
+                                            <Trigger Property="IsChecked" Value="True">
+                                                <Setter TargetName="Bd" Property="BorderBrush" Value="{StaticResource AccentBrush}"/>
+                                            </Trigger>
+                                        </ControlTemplate.Triggers>
+                                    </ControlTemplate>
+                                </ToggleButton.Template>
+                            </ToggleButton>
+
+                            <TextBox x:Name="PART_EditableTextBox"
+                                     Margin="1" Padding="8,6,28,6"
+                                     Background="Transparent"
+                                     Foreground="{StaticResource TextBrush}"
+                                     CaretBrush="{StaticResource TextBrush}"
+                                     BorderThickness="0"
+                                     IsReadOnly="{TemplateBinding IsReadOnly}"
+                                     VerticalContentAlignment="Center"
+                                     HorizontalAlignment="Stretch"/>
+
+                            <Popup x:Name="PART_Popup" Placement="Bottom"
+                                   IsOpen="{TemplateBinding IsDropDownOpen}"
+                                   AllowsTransparency="True" Focusable="False"
+                                   PopupAnimation="Slide">
+                                <Border MinWidth="{TemplateBinding ActualWidth}"
+                                        MaxHeight="{TemplateBinding MaxDropDownHeight}"
+                                        Background="{StaticResource SurfaceBrush}"
+                                        BorderBrush="{StaticResource BorderBrush}" BorderThickness="1"
+                                        CornerRadius="4" Margin="0,2,0,0" Padding="0,4">
+                                    <ScrollViewer SnapsToDevicePixels="True">
+                                        <StackPanel IsItemsHost="True" KeyboardNavigation.DirectionalNavigation="Contained"/>
+                                    </ScrollViewer>
+                                </Border>
+                            </Popup>
+                        </Grid>
                     </ControlTemplate>
                 </Setter.Value>
             </Setter>

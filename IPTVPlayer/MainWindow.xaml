@@ -5,6 +5,7 @@
         Title="IPTV Player" Height="700" Width="1100"
         MinHeight="480" MinWidth="720"
         Background="{StaticResource BgBrush}"
+        Icon="{StaticResource ChucaoIcon}"
         WindowStartupLocation="CenterScreen"
         Loaded="Window_Loaded"
         Closing="Window_Closing"
@@ -28,13 +29,14 @@
                     <ColumnDefinition Width="200"/>
                 </Grid.ColumnDefinitions>
 
-                <TextBox x:Name="UrlBox" Grid.Column="0"
-                         Style="{StaticResource DarkTextBox}"
-                         Text="{Binding PlaylistUrl, UpdateSourceTrigger=PropertyChanged}"
-                         VerticalContentAlignment="Center"
-                         KeyDown="UrlBox_KeyDown">
-                    <TextBox.ToolTip>URL de playlist M3U o ruta de archivo local</TextBox.ToolTip>
-                </TextBox>
+                <ComboBox x:Name="UrlBox" Grid.Column="0"
+                          Style="{StaticResource UrlCombo}"
+                          Text="{Binding PlaylistUrl, UpdateSourceTrigger=PropertyChanged}"
+                          ItemsSource="{Binding RecentUrls}"
+                          VerticalContentAlignment="Center"
+                          KeyDown="UrlBox_KeyDown">
+                    <ComboBox.ToolTip>URL de playlist M3U o ruta de archivo local</ComboBox.ToolTip>
+                </ComboBox>
 
                 <Button Grid.Column="1" Content="Cargar" Margin="8,0"
                         Style="{StaticResource AccentBtn}"
@@ -147,14 +149,11 @@
                                 <HierarchicalDataTemplate.ItemTemplate>
                                     <DataTemplate>
                                         <StackPanel Orientation="Horizontal" Margin="2,1">
-                                            <!-- Channel Logo -->
                                             <Grid Width="24" Height="24" Margin="0,0,6,0" VerticalAlignment="Center">
-                                                <!-- Fallback icon (always visible underneath) -->
                                                 <TextBlock Text="&#xE774;" FontFamily="Segoe MDL2 Assets"
                                                            FontSize="14"
                                                            Foreground="{StaticResource TextDimBrush}"
                                                            HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                                                <!-- Logo overlays the icon when loaded -->
                                                 <Image Source="{Binding LogoUrl, Converter={StaticResource ImgLoad}, IsAsync=True}"
                                                        Width="24" Height="24"
                                                        Stretch="UniformToFill"
@@ -198,9 +197,6 @@
             <!-- Video Area -->
             <Grid Grid.Column="2" Background="Black">
                 <vlc:VideoView x:Name="VideoView">
-                    <!-- All overlay content MUST be inside VideoView.Content.
-                         The internal ForegroundWindow renders this above the native VLC HWND,
-                         solving the airspace problem. #01000000 enables mouse hit-testing. -->
                     <Grid x:Name="VideoOverlay" Background="#01000000"
                           MouseMove="VideoOverlay_MouseMove"
                           MouseDown="VideoOverlay_MouseDown">
@@ -208,15 +204,46 @@
                         <!-- Placeholder when no media -->
                         <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center"
                                     Visibility="{Binding Player.HasMedia, Converter={StaticResource InvBoolToVis}}">
+                            <StackPanel.Style>
+                                <Style TargetType="StackPanel">
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding Player.IsReconnecting}" Value="True">
+                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </StackPanel.Style>
                             <TextBlock Text="&#xE714;" FontFamily="Segoe MDL2 Assets"
-                                       FontSize="48" Foreground="#404060"
+                                       FontSize="48" Foreground="#404048"
                                        HorizontalAlignment="Center"/>
                             <TextBlock Text="Selecciona un canal para reproducir"
-                                       Foreground="#505070" FontSize="14" Margin="0,12,0,0"
+                                       Foreground="#505058" FontSize="14" Margin="0,12,0,0"
                                        HorizontalAlignment="Center"/>
                         </StackPanel>
 
-                        <!-- Fullscreen overlay controls (visible only in fullscreen mode) -->
+                        <!-- Reconnection overlay -->
+                        <Border HorizontalAlignment="Center" VerticalAlignment="Center"
+                                Background="#DD1A1A1E" CornerRadius="10" Padding="28,20"
+                                Visibility="{Binding Player.IsReconnecting, Converter={StaticResource BoolToVis}}">
+                            <StackPanel HorizontalAlignment="Center">
+                                <TextBlock Text="&#xE895;" FontFamily="Segoe MDL2 Assets"
+                                           FontSize="28" Foreground="{StaticResource AccentBrush}"
+                                           HorizontalAlignment="Center" Margin="0,0,0,10"/>
+                                <ProgressBar IsIndeterminate="True" Height="3" Width="140"
+                                             Foreground="{StaticResource AccentBrush}"
+                                             Background="{StaticResource SurfaceHighBrush}"
+                                             BorderThickness="0" Margin="0,0,0,12"/>
+                                <TextBlock Text="{Binding Player.ReconnectStatus}"
+                                           Foreground="{StaticResource TextBrush}" FontSize="13"
+                                           HorizontalAlignment="Center" Margin="0,0,0,14"/>
+                                <Button Content="Cancelar"
+                                        Style="{StaticResource PlayerBtn}"
+                                        Command="{Binding Player.CancelReconnectCommand}"
+                                        HorizontalAlignment="Center" Padding="16,6"/>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Fullscreen overlay controls -->
                         <Border x:Name="FullscreenOverlay" VerticalAlignment="Bottom"
                                 Visibility="Collapsed" Opacity="0">
                             <Border.Background>
@@ -334,7 +361,6 @@
                     <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
 
-                <!-- Play/Pause -->
                 <Button Grid.Column="0" Style="{StaticResource IconBtn}"
                         Command="{Binding Player.TogglePlayPauseCommand}" Margin="0,0,2,0">
                     <Grid>
@@ -345,18 +371,15 @@
                     </Grid>
                 </Button>
 
-                <!-- Stop -->
                 <Button Grid.Column="1" Style="{StaticResource IconBtn}"
                         Content="&#xE71A;"
                         Command="{Binding Player.StopCommand}" Margin="0,0,6,0"/>
 
-                <!-- Seek Slider -->
                 <Slider x:Name="SeekSlider" Grid.Column="2"
                         Style="{StaticResource SeekSlider}"
                         Value="{Binding Player.Position, Mode=TwoWay}"
                         VerticalAlignment="Center" Margin="4,0"/>
 
-                <!-- Time -->
                 <TextBlock Grid.Column="3" VerticalAlignment="Center" Margin="6,0"
                            Foreground="{StaticResource TextDimBrush}" FontSize="12"
                            FontFamily="Consolas">
@@ -365,7 +388,6 @@
                     <Run Text="{Binding Player.Duration, Converter={StaticResource TimeToStr}, Mode=OneWay}"/>
                 </TextBlock>
 
-                <!-- Volume -->
                 <Button Grid.Column="4" Style="{StaticResource IconBtn}"
                         Command="{Binding Player.ToggleMuteCommand}">
                     <Grid>
@@ -380,7 +402,6 @@
                         Value="{Binding Player.Volume, Mode=TwoWay}"
                         Maximum="100" VerticalAlignment="Center" Margin="0,0,8,0"/>
 
-                <!-- Audio Track -->
                 <ComboBox Grid.Column="6" Style="{StaticResource DarkCombo}"
                           ItemsSource="{Binding Player.AudioTracks}"
                           SelectedItem="{Binding Player.SelectedAudioTrack}"
@@ -388,7 +409,6 @@
                     <ComboBox.ToolTip>Pista de Audio</ComboBox.ToolTip>
                 </ComboBox>
 
-                <!-- Subtitle Track -->
                 <ComboBox Grid.Column="7" Style="{StaticResource DarkCombo}"
                           ItemsSource="{Binding Player.SubtitleTracks}"
                           SelectedItem="{Binding Player.SelectedSubtitleTrack}"
@@ -396,13 +416,11 @@
                     <ComboBox.ToolTip>Subtítulos</ComboBox.ToolTip>
                 </ComboBox>
 
-                <!-- PiP -->
                 <Button Grid.Column="8" Style="{StaticResource IconBtn}"
                         Content="&#xE8A7;" Click="PiP_Click" Margin="0,0,2,0">
                     <Button.ToolTip>Picture in Picture</Button.ToolTip>
                 </Button>
 
-                <!-- Fullscreen -->
                 <Button Grid.Column="9" Style="{StaticResource IconBtn}"
                         Click="Fullscreen_Click">
                     <Button.ToolTip>Pantalla Completa (F11)</Button.ToolTip>

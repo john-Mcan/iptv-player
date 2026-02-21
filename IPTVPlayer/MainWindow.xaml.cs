@@ -5,6 +5,7 @@ using System.Windows.Input;
 using System.Windows.Media.Animation;
 using System.Windows.Threading;
 using IPTVPlayer.Models;
+using IPTVPlayer.Services;
 using IPTVPlayer.ViewModels;
 using IPTVPlayer.Views;
 
@@ -12,7 +13,8 @@ namespace IPTVPlayer;
 
 public partial class MainWindow : Window
 {
-    private readonly MainViewModel _vm = new();
+    private readonly MainViewModel _vm;
+    private readonly AppSettings _settings;
     private PiPWindow? _pipWindow;
     private bool _isFullscreen;
     private WindowState _prevWindowState;
@@ -23,7 +25,21 @@ public partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
+
+        _settings = SettingsService.Load();
+        _vm = new MainViewModel();
+        _vm.LoadSettings(_settings);
         DataContext = _vm;
+
+        if (!double.IsNaN(_settings.WindowLeft) && !double.IsNaN(_settings.WindowTop))
+        {
+            WindowStartupLocation = WindowStartupLocation.Manual;
+            Left = _settings.WindowLeft;
+            Top = _settings.WindowTop;
+        }
+        Width = _settings.WindowWidth;
+        Height = _settings.WindowHeight;
+        SidebarColumn.Width = new GridLength(_settings.SidebarWidth);
 
         _hideControlsTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(3) };
         _hideControlsTimer.Tick += (_, _) =>
@@ -46,10 +62,21 @@ public partial class MainWindow : Window
             new DragStartedEventHandler((_, _) => _vm.Player.BeginSeek()));
         FsSeekSlider.AddHandler(Thumb.DragCompletedEvent,
             new DragCompletedEventHandler((_, _) => _vm.Player.EndSeek(FsSeekSlider.Value)));
+
+        if (_settings.AutoLoadPlaylist && !string.IsNullOrWhiteSpace(_vm.PlaylistUrl))
+            _vm.LoadPlaylistCommand.Execute(null);
     }
 
     private void Window_Closing(object? sender, CancelEventArgs e)
     {
+        _vm.SaveToSettings(_settings);
+        _settings.WindowWidth = Width;
+        _settings.WindowHeight = Height;
+        _settings.WindowLeft = Left;
+        _settings.WindowTop = Top;
+        _settings.SidebarWidth = SidebarColumn.ActualWidth;
+        SettingsService.Save(_settings);
+
         _hideControlsTimer.Stop();
         _pipWindow?.Close();
         VideoView.MediaPlayer = null;
@@ -78,7 +105,10 @@ public partial class MainWindow : Window
     private void UrlBox_KeyDown(object sender, KeyEventArgs e)
     {
         if (e.Key == Key.Enter)
+        {
+            UrlBox.IsDropDownOpen = false;
             _vm.LoadPlaylistCommand.Execute(null);
+        }
     }
 
     private void ChannelTree_MouseDoubleClick(object sender, MouseButtonEventArgs e)
@@ -193,7 +223,7 @@ public partial class MainWindow : Window
         TopBar.Visibility = Visibility.Visible;
         Sidebar.Visibility = Visibility.Visible;
         SidebarSplitter.Visibility = Visibility.Visible;
-        SidebarColumn.Width = new GridLength(280);
+        SidebarColumn.Width = new GridLength(_settings.SidebarWidth);
         ControlsBar.Visibility = Visibility.Visible;
         StatusBar.Visibility = Visibility.Visible;
 

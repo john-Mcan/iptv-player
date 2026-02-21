@@ -9,6 +9,7 @@ namespace IPTVPlayer.ViewModels;
 public partial class MainViewModel : ObservableObject
 {
     private readonly PlaylistService _playlistService = new();
+    private const int MaxRecentUrls = 5;
 
     [ObservableProperty]
     private string _playlistUrl = string.Empty;
@@ -37,7 +38,40 @@ public partial class MainViewModel : ObservableObject
     [ObservableProperty]
     private int _totalChannels;
 
+    [ObservableProperty]
+    private ObservableCollection<string> _recentUrls = new();
+
     public PlayerViewModel Player { get; } = new();
+
+    public void LoadSettings(AppSettings settings)
+    {
+        PlaylistUrl = settings.LastPlaylistUrl;
+        RecentUrls = new ObservableCollection<string>(settings.RecentPlaylistUrls);
+        Player.Volume = settings.Volume;
+        Player.IsMuted = settings.IsMuted;
+    }
+
+    public void SaveToSettings(AppSettings settings)
+    {
+        settings.LastPlaylistUrl = PlaylistUrl;
+        settings.RecentPlaylistUrls = RecentUrls.ToList();
+        settings.Volume = Player.Volume;
+        settings.IsMuted = Player.IsMuted;
+    }
+
+    private void AddToRecentUrls(string url)
+    {
+        if (string.IsNullOrWhiteSpace(url)) return;
+
+        var existing = RecentUrls.FirstOrDefault(u => u.Equals(url, StringComparison.OrdinalIgnoreCase));
+        if (existing is not null)
+            RecentUrls.Remove(existing);
+
+        RecentUrls.Insert(0, url);
+
+        while (RecentUrls.Count > MaxRecentUrls)
+            RecentUrls.RemoveAt(RecentUrls.Count - 1);
+    }
 
     [RelayCommand]
     private async Task LoadPlaylistAsync()
@@ -53,10 +87,11 @@ public partial class MainViewModel : ObservableObject
             Categories = new ObservableCollection<ContentCategory>(categories);
             TotalChannels = categories.Sum(c => c.TotalChannels);
 
-            // Select first category by default
             SelectedCategory = Categories.FirstOrDefault();
 
             Player.StatusText = $"Playlist cargada: {TotalChannels} canales en {Categories.Count} categorías";
+
+            AddToRecentUrls(PlaylistUrl);
         }
         catch (Exception ex)
         {
