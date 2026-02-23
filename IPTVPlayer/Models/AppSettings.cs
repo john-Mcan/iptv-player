@@ -16,4 +16,5 @@ public class AppSettings
     public List<string> FavoriteUrls { get; set; } = new();
     public List<string> FavoriteSeriesNames { get; set; } = new();
     public List<WatchHistoryEntry> WatchHistory { get; set; } = new();
+    public int MaxReconnectAttempts { get; set; } = 10;
 }

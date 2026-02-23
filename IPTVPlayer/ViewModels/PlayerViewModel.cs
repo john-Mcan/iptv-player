@@ -19,8 +19,9 @@ public partial class PlayerViewModel : ObservableObject, IDisposable
     private CancellationTokenSource? _reconnectCts;
     private long _lastKnownTimeMs;
 
-    private const int MaxReconnectAttempts = 10;
     private const int MaxBackoffMs = 30_000;
+
+    public int MaxReconnectAttempts { get; set; } = 10;
 
     [ObservableProperty]
     private bool _isPlaying;

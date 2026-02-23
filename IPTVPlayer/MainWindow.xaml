@@ -83,8 +83,8 @@
                         </StackPanel>
                     </Border>
                     <Button Style="{StaticResource IconBtn}" Content="&#xE713;"
-                            Margin="6,0,0,0" IsEnabled="False">
-                        <Button.ToolTip>Configuración (próximamente)</Button.ToolTip>
+                            Margin="6,0,0,0" Click="Settings_Click">
+                        <Button.ToolTip>Configuración</Button.ToolTip>
                     </Button>
                 </StackPanel>
             </Grid>

@@ -814,6 +814,7 @@ public partial class MainViewModel : ObservableObject
         _favoriteUrlSet = new HashSet<string>(settings.FavoriteUrls, StringComparer.OrdinalIgnoreCase);
         _favoriteSeriesSet = new HashSet<string>(settings.FavoriteSeriesNames ?? [], StringComparer.OrdinalIgnoreCase);
         _watchHistory = settings.WatchHistory?.ToList() ?? [];
+        Player.MaxReconnectAttempts = settings.MaxReconnectAttempts;
         RefreshHistoryLists();
     }
 
@@ -828,6 +829,23 @@ public partial class MainViewModel : ObservableObject
         settings.FavoriteUrls = _favoriteUrlSet.ToList();
         settings.FavoriteSeriesNames = _favoriteSeriesSet.ToList();
         settings.WatchHistory = _watchHistory;
+    }
+
+    public void ClearWatchHistory()
+    {
+        _watchHistory.Clear();
+        _currentWatchEntry = null;
+        RefreshHistoryLists();
+    }
+
+    public void ClearFavorites()
+    {
+        _favoriteUrlSet.Clear();
+        _favoriteSeriesSet.Clear();
+        MarkFavoriteChannels();
+        RefreshFavoriteLists();
+        if (SeriesNavLevel == SeriesNavLevel.Shows)
+            RefreshSeriesDisplay();
     }
 
     #endregion

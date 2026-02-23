@@ -103,16 +103,53 @@ La aplicacion compila y ejecuta correctamente. Todas las funcionalidades core es
 
 ---
 
-## Pendiente — Funcionalidades completas por implementar
+## Completado — Funcionalidades implementadas sobre el layout
 
-### Layout ya posicionado, logica pendiente
+### Favoritos
+- [x] Marcar/desmarcar canales, peliculas y series como favorito (icono estrella)
+- [x] Persistencia en AppSettings (FavoriteUrls para canales/peliculas, FavoriteSeriesNames para series)
+- [x] Paneles FAVORITOS en cada tab (Live TV, Movies, Series) con lista interactiva
+- [x] En Live TV, estrella visible en TreeViewItem al hover y cuando esta marcado
+- [x] Click en favorito reproduce directamente (series navega al show)
 
-- [ ] **Favoritos**: Logica completa de marcar/desmarcar canales/peliculas/series como favoritos, persistencia en settings, visualizacion en paneles placeholder existentes
-- [ ] **Vistos recientemente / Continuar viendo**: Tracking de historial de reproduccion, persistencia, visualizacion en paneles placeholder existentes
-- [ ] **EPG (Electronic Program Guide)**: Parser XMLTV, vinculacion con canales via tvg-id, visualizacion en el panel EPG placeholder existente
-- [ ] **Info del canal completa**: Programa actual/siguiente (requiere EPG), metadata adicional del stream
-- [ ] **Episodios de series**: Cuando se selecciona una serie en el grid, mostrar lista de episodios en el mismo panel para seleccionar y reproducir
-- [ ] **Configuracion (Settings)**: Pantalla de configuracion accesible desde el icono gear (actualmente dummy)
+### Vistos recientemente / Continuar viendo
+- [x] Registro automatico de historial al reproducir cualquier canal/pelicula/serie
+- [x] Para VOD: tracking de posicion (PositionMs) y duracion (DurationMs) en tiempo real
+- [x] Persistencia en AppSettings (WatchHistory con Url, Name, LogoUrl, PositionMs, DurationMs, Timestamp, Category)
+- [x] Panel VISTOS RECIENTEMENTE en Live TV (ultimos 10 canales)
+- [x] Panel CONTINUAR VIENDO en Movies/Series con barra de progreso sobre la card
+- [x] Click retoma desde la posicion guardada (PlayChannelFromPosition con :start-time)
+- [x] Maximo 20 entradas, las mas antiguas se eliminan automaticamente
+
+### EPG (Electronic Program Guide)
+- [x] Deteccion automatica de URL EPG desde atributos url-tvg / x-tvg-url en cabecera M3U
+- [x] Parser XMLTV completo con soporte GZip
+- [x] Panel EPG debajo del video (Live TV) con lista horizontal de programas
+- [x] Programa actual destacado, descripcion al hover
+- [x] Panel info del canal (derecha) muestra programa actual y siguiente
+- [x] Vinculacion canal-EPG via tvg-id / tvg-name
+- [x] Cache en memoria, refresh automatico cada 60 segundos
+
+### Info del canal completa
+- [x] Logo ampliado, nombre, grupo, indicador EN VIVO
+- [x] Programa actual y siguiente con titulo y horario (requiere EPG cargada)
+
+### Episodios de series
+- [x] Navegacion Shows → Temporadas → Episodios (SeriesNavLevel enum)
+- [x] Deteccion automatica de episodios via regex (S01E01, T01E01, 1x01)
+- [x] Breadcrumb y boton Volver para navegar entre niveles
+- [x] Doble clic en episodio lo reproduce
+- [x] Agrupacion por nombre de serie derivado del prefijo antes del patron de episodio
+
+### Configuracion (Settings)
+- [x] Boton gear (⚙) activo en header bar
+- [x] Ventana modal de configuracion con tema oscuro y barra de titulo oscura (DWM)
+- [x] Checkbox: cargar ultima playlist automaticamente al iniciar
+- [x] Slider: intentos maximos de reconexion (1-20), configurable en AppSettings
+- [x] Boton: limpiar historial de reproduccion (con confirmacion visual)
+- [x] Boton: limpiar favoritos (con confirmacion visual)
+- [x] Seccion Acerca de: icono Chucao, nombre de la app, version, descripcion
+- [x] Guardar/Cancelar con persistencia en AppSettings
 
 ### Prioridad media
 

@@ -151,6 +151,47 @@ public partial class MainWindow : Window
         }
     }
 
+    #region Settings
+
+    private void Settings_Click(object sender, RoutedEventArgs e)
+    {
+        var dlg = new SettingsWindow(
+            _settings.AutoLoadPlaylist,
+            _settings.MaxReconnectAttempts)
+        { Owner = this };
+
+        var saved = dlg.ShowDialog() == true;
+        var changed = false;
+
+        if (saved)
+        {
+            _settings.AutoLoadPlaylist = dlg.SettingsAutoLoadPlaylist;
+            _settings.MaxReconnectAttempts = dlg.SettingsMaxReconnectAttempts;
+            _vm.Player.MaxReconnectAttempts = dlg.SettingsMaxReconnectAttempts;
+            changed = true;
+        }
+
+        if (dlg.HistoryCleared)
+        {
+            _vm.ClearWatchHistory();
+            changed = true;
+        }
+
+        if (dlg.FavoritesCleared)
+        {
+            _vm.ClearFavorites();
+            changed = true;
+        }
+
+        if (changed)
+        {
+            _vm.SaveToSettings(_settings);
+            SettingsService.Save(_settings);
+        }
+    }
+
+    #endregion
+
     #region Content Tabs
 
     private void ContentTab_Click(object sender, RoutedEventArgs e)
