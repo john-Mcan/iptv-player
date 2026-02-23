@@ -1,7 +1,10 @@
 using System.ComponentModel;
+using System.Runtime.InteropServices;
 using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using System.Windows.Input;
+using System.Windows.Interop;
 using System.Windows.Media.Animation;
 using System.Windows.Threading;
 using IPTVPlayer.Models;
@@ -13,13 +16,19 @@ namespace IPTVPlayer;
 
 public partial class MainWindow : Window
 {
+    [DllImport("dwmapi.dll")]
+    private static extern int DwmSetWindowAttribute(IntPtr hwnd, int attr, ref int attrValue, int attrSize);
+
     private readonly MainViewModel _vm;
     private readonly AppSettings _settings;
     private PiPWindow? _pipWindow;
     private bool _isFullscreen;
     private WindowState _prevWindowState;
+    private ResizeMode _prevResizeMode;
 
     private readonly DispatcherTimer _hideControlsTimer;
+    private readonly DispatcherTimer _clockTimer;
+    private readonly DispatcherTimer _epgRefreshTimer;
     private bool _fsControlsVisible;
 
     public MainWindow()
@@ -47,10 +56,21 @@ public partial class MainWindow : Window
             _hideControlsTimer.Stop();
             HideFsControls();
         };
+
+        _clockTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(30) };
+        _clockTimer.Tick += (_, _) => UpdateClock();
+        _clockTimer.Start();
+        UpdateClock();
+
+        _epgRefreshTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(60) };
+        _epgRefreshTimer.Tick += (_, _) => _vm.RefreshEpgDisplay();
+        _epgRefreshTimer.Start();
     }
 
     private void Window_Loaded(object sender, RoutedEventArgs e)
     {
+        EnableDarkTitleBar();
+
         VideoView.MediaPlayer = _vm.Player.VlcMediaPlayer;
 
         SeekSlider.AddHandler(Thumb.DragStartedEvent,
@@ -63,8 +83,26 @@ public partial class MainWindow : Window
         FsSeekSlider.AddHandler(Thumb.DragCompletedEvent,
             new DragCompletedEventHandler((_, _) => _vm.Player.EndSeek(FsSeekSlider.Value)));
 
+        SyncTabUI();
+        UpdateInfoPanelVisibility();
+
         if (_settings.AutoLoadPlaylist && !string.IsNullOrWhiteSpace(_vm.PlaylistUrl))
             _vm.LoadPlaylistCommand.Execute(null);
+    }
+
+    private void EnableDarkTitleBar()
+    {
+        var hwnd = new WindowInteropHelper(this).Handle;
+        if (hwnd != IntPtr.Zero)
+        {
+            int value = 1;
+            DwmSetWindowAttribute(hwnd, 20, ref value, sizeof(int));
+        }
+    }
+
+    private void UpdateClock()
+    {
+        ClockText.Text = DateTime.Now.ToString("HH:mm  —  ddd dd MMM");
     }
 
     private void Window_Closing(object? sender, CancelEventArgs e)
@@ -78,6 +116,8 @@ public partial class MainWindow : Window
         SettingsService.Save(_settings);
 
         _hideControlsTimer.Stop();
+        _clockTimer.Stop();
+        _epgRefreshTimer.Stop();
         _pipWindow?.Close();
         VideoView.MediaPlayer = null;
         _vm.Player.Dispose();
@@ -111,19 +151,88 @@ public partial class MainWindow : Window
         }
     }
 
+    #region Content Tabs
+
+    private void ContentTab_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is RadioButton rb && rb.Tag is string tabStr
+            && Enum.TryParse<ContentTab>(tabStr, out var tab))
+        {
+            _vm.ActiveTab = tab;
+            UpdateInfoPanelVisibility();
+        }
+    }
+
+    private void SyncTabUI()
+    {
+        LiveTvTab.IsChecked = _vm.ActiveTab == ContentTab.LiveTV;
+        MoviesTab.IsChecked = _vm.ActiveTab == ContentTab.Movies;
+        SeriesTab.IsChecked = _vm.ActiveTab == ContentTab.Series;
+    }
+
+    private void UpdateInfoPanelVisibility()
+    {
+        if (_vm.IsLiveTvActive)
+        {
+            InfoSplitter.Visibility = Visibility.Visible;
+            InfoPanel.Visibility = Visibility.Visible;
+            InfoColumn.Width = new GridLength(220);
+        }
+        else
+        {
+            InfoSplitter.Visibility = Visibility.Collapsed;
+            InfoPanel.Visibility = Visibility.Collapsed;
+            InfoColumn.Width = new GridLength(0);
+        }
+    }
+
+    #endregion
+
+    #region Channel / Content Selection
+
     private void ChannelTree_MouseDoubleClick(object sender, MouseButtonEventArgs e)
     {
         if (ChannelTree.SelectedItem is Channel channel)
             _vm.PlayChannel(channel);
     }
 
-    private void CategoryTab_Click(object sender, RoutedEventArgs e)
+    private void ContentGrid_MouseDoubleClick(object sender, MouseButtonEventArgs e)
     {
-        if (sender is ToggleButton btn && btn.Tag is ContentCategory category)
-        {
-            _vm.SelectedCategory = category;
-        }
+        if (sender is ListBox lb && lb.SelectedItem is Channel channel)
+            _vm.PlayChannel(channel);
     }
+
+    private void SeriesGrid_MouseDoubleClick(object sender, MouseButtonEventArgs e)
+    {
+        if (sender is ListBox lb && lb.SelectedItem is Channel channel)
+            _vm.HandleSeriesItemClick(channel);
+    }
+
+    private void FavoriteItem_Click(object sender, MouseButtonEventArgs e)
+    {
+        if (sender is FrameworkElement fe && fe.DataContext is Channel channel)
+            _vm.PlayChannel(channel);
+    }
+
+    private void SeriesFavoriteItem_Click(object sender, MouseButtonEventArgs e)
+    {
+        if (sender is FrameworkElement fe && fe.DataContext is Channel channel)
+            _vm.NavigateToSeriesShow(channel.Name);
+    }
+
+    private void HistoryItem_Click(object sender, MouseButtonEventArgs e)
+    {
+        if (sender is FrameworkElement fe && fe.DataContext is WatchHistoryEntry entry)
+            _vm.PlayFromHistory(entry);
+    }
+
+    private void ContinueWatchingItem_Click(object sender, MouseButtonEventArgs e)
+    {
+        if (sender is FrameworkElement fe && fe.DataContext is WatchHistoryEntry entry)
+            _vm.PlayFromHistory(entry);
+    }
+
+    #endregion
 
     #region PiP
 
@@ -146,17 +255,19 @@ public partial class MainWindow : Window
         var currentUrl = _vm.Player.CurrentUrl;
         var currentTimeMs = _vm.Player.VlcMediaPlayer.Time;
         var currentVolume = _vm.Player.Volume;
+        var audioTrackId = _vm.Player.VlcMediaPlayer.AudioTrack;
 
         _vm.Player.VlcMediaPlayer.Pause();
+        _vm.Player.PrepareForPiP();
         VideoView.MediaPlayer = null;
 
-        _pipWindow = new PiPWindow(currentUrl, currentTimeMs, currentVolume);
+        _pipWindow = new PiPWindow(currentUrl, currentTimeMs, currentVolume, audioTrackId);
 
-        _pipWindow.PiPClosedWithTime += (pipTimeMs) =>
+        _pipWindow.PiPClosedWithTime += async (pipTimeMs, pipAudioTrackId) =>
         {
-            VideoView.MediaPlayer = _vm.Player.VlcMediaPlayer;
-            _vm.Player.ResumeFromPiP(pipTimeMs);
             _pipWindow = null;
+            VideoView.MediaPlayer = _vm.Player.VlcMediaPlayer;
+            await _vm.Player.ResumeFromPiPAsync(pipTimeMs, pipAudioTrackId);
         };
 
         _pipWindow.Show();
@@ -187,15 +298,26 @@ public partial class MainWindow : Window
     private void EnterFullscreen()
     {
         _prevWindowState = WindowState;
+        _prevResizeMode = ResizeMode;
 
-        TopBar.Visibility = Visibility.Collapsed;
-        Sidebar.Visibility = Visibility.Collapsed;
+        HeaderBar.Visibility = Visibility.Collapsed;
+        LeftSidebar.Visibility = Visibility.Collapsed;
         SidebarSplitter.Visibility = Visibility.Collapsed;
         SidebarColumn.Width = new GridLength(0);
+        InfoSplitter.Visibility = Visibility.Collapsed;
+        InfoPanel.Visibility = Visibility.Collapsed;
+        InfoColumn.Width = new GridLength(0);
+        HorizontalSplitter.Visibility = Visibility.Collapsed;
+        BelowVideoRow.Height = new GridLength(0);
+        BelowVideoRow.MinHeight = 0;
         ControlsBar.Visibility = Visibility.Collapsed;
         StatusBar.Visibility = Visibility.Collapsed;
 
+        if (WindowState == WindowState.Maximized)
+            WindowState = WindowState.Normal;
+
         WindowStyle = WindowStyle.None;
+        ResizeMode = ResizeMode.NoResize;
         WindowState = WindowState.Maximized;
 
         FsIconExpand.Visibility = Visibility.Collapsed;
@@ -217,15 +339,21 @@ public partial class MainWindow : Window
         VideoOverlay.Cursor = null;
         _fsControlsVisible = false;
 
+        ResizeMode = _prevResizeMode;
         WindowStyle = WindowStyle.SingleBorderWindow;
         WindowState = _prevWindowState;
 
-        TopBar.Visibility = Visibility.Visible;
-        Sidebar.Visibility = Visibility.Visible;
+        HeaderBar.Visibility = Visibility.Visible;
+        LeftSidebar.Visibility = Visibility.Visible;
         SidebarSplitter.Visibility = Visibility.Visible;
         SidebarColumn.Width = new GridLength(_settings.SidebarWidth);
+        HorizontalSplitter.Visibility = Visibility.Visible;
+        BelowVideoRow.Height = new GridLength(2, GridUnitType.Star);
+        BelowVideoRow.MinHeight = 100;
         ControlsBar.Visibility = Visibility.Visible;
         StatusBar.Visibility = Visibility.Visible;
+
+        UpdateInfoPanelVisibility();
 
         FsIconExpand.Visibility = Visibility.Visible;
         FsIconRestore.Visibility = Visibility.Collapsed;

@@ -8,6 +8,26 @@ public static partial class M3UParserService
     [GeneratedRegex(@"([\w-]+)=""([^""]*)""", RegexOptions.Compiled)]
     private static partial Regex AttributeRegex();
 
+    public static string? ParseEpgUrl(string content)
+    {
+        var firstLine = content.Split('\n', 2)[0].Trim();
+        if (!firstLine.StartsWith("#EXTM3U", StringComparison.OrdinalIgnoreCase))
+            return null;
+
+        foreach (Match m in AttributeRegex().Matches(firstLine))
+        {
+            var key = m.Groups[1].Value.ToLowerInvariant();
+            if (key is "url-tvg" or "x-tvg-url")
+            {
+                var url = m.Groups[2].Value.Trim();
+                if (!string.IsNullOrEmpty(url))
+                    return url;
+            }
+        }
+
+        return null;
+    }
+
     public static List<Channel> Parse(string content)
     {
         var channels = new List<Channel>();

@@ -12,4 +12,8 @@ public class AppSettings
     public double WindowTop { get; set; } = double.NaN;
     public double SidebarWidth { get; set; } = 280;
     public bool AutoLoadPlaylist { get; set; } = true;
+    public string ActiveTab { get; set; } = "LiveTV";
+    public List<string> FavoriteUrls { get; set; } = new();
+    public List<string> FavoriteSeriesNames { get; set; } = new();
+    public List<WatchHistoryEntry> WatchHistory { get; set; } = new();
 }

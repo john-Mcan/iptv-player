@@ -4,12 +4,6 @@ using System.Windows.Media.Imaging;
 
 namespace IPTVPlayer.Converters;
 
-/// <summary>
-/// Converts a URL string into a BitmapImage with async download.
-/// Uses default BitmapCacheOption (OnDemand) which downloads asynchronously
-/// for HTTP URIs without blocking the UI thread.
-/// Returns null if the URL is empty or invalid.
-/// </summary>
 public class ImageLoadConverter : IValueConverter
 {
     public object? Convert(object value, Type targetType, object parameter, CultureInfo culture)
@@ -19,12 +13,16 @@ public class ImageLoadConverter : IValueConverter
 
         try
         {
+            int decodeWidth = 200;
+            if (parameter is string ps && int.TryParse(ps, out var pw))
+                decodeWidth = pw;
+
             var bitmap = new BitmapImage();
             bitmap.BeginInit();
             bitmap.UriSource = new Uri(url, UriKind.Absolute);
-            bitmap.DecodePixelWidth = 28;
-            bitmap.DecodePixelHeight = 28;
+            bitmap.DecodePixelWidth = decodeWidth;
             bitmap.CreateOptions = BitmapCreateOptions.IgnoreColorProfile;
+            bitmap.CacheOption = BitmapCacheOption.OnDemand;
             bitmap.EndInit();
 
             return bitmap;

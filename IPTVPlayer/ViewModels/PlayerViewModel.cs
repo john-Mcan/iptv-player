@@ -13,6 +13,8 @@ public partial class PlayerViewModel : ObservableObject, IDisposable
     private readonly MediaPlayer _mediaPlayer;
     private bool _isSeeking;
     private bool _userRequestedStop;
+    private bool _isPiPTransition;
+    private int _pendingAudioTrackId = -1;
     private int _reconnectAttempts;
     private CancellationTokenSource? _reconnectCts;
     private long _lastKnownTimeMs;
@@ -73,6 +75,8 @@ public partial class PlayerViewModel : ObservableObject, IDisposable
 
     public MediaPlayer VlcMediaPlayer => _mediaPlayer;
 
+    public Action<long, long>? OnPositionUpdated { get; set; }
+
     public PlayerViewModel()
     {
         Core.Initialize();
@@ -117,7 +121,7 @@ public partial class PlayerViewModel : ObservableObject, IDisposable
         _mediaPlayer.Stopped += (_, _) => Dispatch(() =>
         {
             IsPlaying = false;
-            if (!IsReconnecting)
+            if (!IsReconnecting && !_isPiPTransition)
             {
                 HasMedia = false;
                 Position = 0;
@@ -136,6 +140,7 @@ public partial class PlayerViewModel : ObservableObject, IDisposable
                 Position = e.Position * 100.0;
             _lastKnownTimeMs = _mediaPlayer.Time;
             CurrentTime = TimeSpan.FromMilliseconds(_lastKnownTimeMs);
+            OnPositionUpdated?.Invoke(_lastKnownTimeMs, (long)Duration.TotalMilliseconds);
         });
 
         _mediaPlayer.LengthChanged += (_, e) => Dispatch(() =>
@@ -232,14 +237,24 @@ public partial class PlayerViewModel : ObservableObject, IDisposable
         foreach (var t in _mediaPlayer.AudioTrackDescription ?? [])
             AudioTracks.Add(new TrackInfo { Id = t.Id, Name = t.Name ?? $"Pista {t.Id}" });
 
-        SelectedAudioTrack = AudioTracks.FirstOrDefault(t => t.Id == currentAudioId);
-        if ((SelectedAudioTrack is null || SelectedAudioTrack.Id == -1) && AudioTracks.Count > 1)
+        if (_pendingAudioTrackId > 0 && AudioTracks.Any(t => t.Id == _pendingAudioTrackId))
         {
-            var firstReal = AudioTracks.FirstOrDefault(t => t.Id > 0);
-            if (firstReal is not null)
+            var track = AudioTracks.First(t => t.Id == _pendingAudioTrackId);
+            SelectedAudioTrack = track;
+            _mediaPlayer.SetAudioTrack(track.Id);
+            _pendingAudioTrackId = -1;
+        }
+        else
+        {
+            SelectedAudioTrack = AudioTracks.FirstOrDefault(t => t.Id == currentAudioId);
+            if ((SelectedAudioTrack is null || SelectedAudioTrack.Id == -1) && AudioTracks.Count > 1)
             {
-                SelectedAudioTrack = firstReal;
-                _mediaPlayer.SetAudioTrack(firstReal.Id);
+                var firstReal = AudioTracks.FirstOrDefault(t => t.Id > 0);
+                if (firstReal is not null)
+                {
+                    SelectedAudioTrack = firstReal;
+                    _mediaPlayer.SetAudioTrack(firstReal.Id);
+                }
             }
         }
 
@@ -255,6 +270,7 @@ public partial class PlayerViewModel : ObservableObject, IDisposable
         _reconnectCts?.Cancel();
         _reconnectCts = null;
         _reconnectAttempts = 0;
+        _pendingAudioTrackId = -1;
         IsReconnecting = false;
         ReconnectStatus = string.Empty;
         _userRequestedStop = false;
@@ -269,9 +285,46 @@ public partial class PlayerViewModel : ObservableObject, IDisposable
         _mediaPlayer.Play(media);
     }
 
-    public void ResumeFromPiP(long pipTimeMs)
+    public void PlayChannelFromPosition(Channel channel, long startPositionMs)
     {
+        _reconnectCts?.Cancel();
+        _reconnectCts = null;
+        _reconnectAttempts = 0;
+        _pendingAudioTrackId = -1;
+        IsReconnecting = false;
+        ReconnectStatus = string.Empty;
+        _userRequestedStop = false;
+        _lastKnownTimeMs = startPositionMs;
+
+        CurrentChannelName = channel.Name;
+        CurrentUrl = channel.Url;
+        StatusText = $"Cargando: {channel.Name}...";
+
+        using var media = new Media(_libVLC, channel.Url, FromType.FromLocation);
+        media.AddOption(":network-caching=1000");
+        if (startPositionMs > 0)
+            media.AddOption($":start-time={startPositionMs / 1000}");
+        _mediaPlayer.Play(media);
+    }
+
+    public long GetCurrentTimeMs() => _lastKnownTimeMs;
+    public long GetDurationMs() => (long)Duration.TotalMilliseconds;
+
+    public void PrepareForPiP()
+    {
+        _isPiPTransition = true;
+    }
+
+    public async Task ResumeFromPiPAsync(long pipTimeMs, int audioTrackId = -1)
+    {
+        _pendingAudioTrackId = audioTrackId;
         StatusText = $"Cargando: {CurrentChannelName}...";
+
+        await Task.Run(() => { try { _mediaPlayer.Stop(); } catch { } });
+
+        _isPiPTransition = false;
+        _userRequestedStop = false;
+        _lastKnownTimeMs = 0;
 
         using var media = new Media(_libVLC, CurrentUrl, FromType.FromLocation);
         media.AddOption(":network-caching=1000");

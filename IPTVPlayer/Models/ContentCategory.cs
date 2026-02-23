@@ -10,6 +10,20 @@ public enum CategoryType
     Other
 }
 
+public enum ContentTab
+{
+    LiveTV,
+    Movies,
+    Series
+}
+
+public enum SeriesNavLevel
+{
+    Shows,
+    Seasons,
+    Episodes
+}
+
 public class ContentCategory
 {
     public string Name { get; set; } = string.Empty;

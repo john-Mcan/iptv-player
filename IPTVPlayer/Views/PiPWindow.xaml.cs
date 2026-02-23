@@ -1,4 +1,5 @@
 using System;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
@@ -13,15 +14,18 @@ public partial class PiPWindow : Window, IDisposable
     private readonly MediaPlayer _mediaPlayer;
     private bool _isDisposed;
     private bool _isMuted;
+    private int _desiredAudioTrackId;
 
     private Point _resizeStart;
     private double _resizeStartWidth, _resizeStartHeight;
 
-    public event Action<long>? PiPClosedWithTime;
+    public event Action<long, int>? PiPClosedWithTime;
 
-    public PiPWindow(string url, long startTimeMs, int volume)
+    public PiPWindow(string url, long startTimeMs, int volume, int audioTrackId)
     {
         InitializeComponent();
+
+        _desiredAudioTrackId = audioTrackId;
 
         var workArea = SystemParameters.WorkArea;
         Left = workArea.Right - Width - 20;
@@ -36,6 +40,26 @@ public partial class PiPWindow : Window, IDisposable
         {
             EnableHardwareDecoding = true,
             Volume = volume
+        };
+
+        _mediaPlayer.ESAdded += (_, _) =>
+        {
+            var target = _desiredAudioTrackId;
+            if (target <= 0 || _isDisposed) return;
+            Task.Run(() =>
+            {
+                try
+                {
+                    if (_isDisposed) return;
+                    var tracks = _mediaPlayer.AudioTrackDescription;
+                    if (tracks?.Any(t => t.Id == target) == true)
+                    {
+                        _mediaPlayer.SetAudioTrack(target);
+                        _desiredAudioTrackId = -1;
+                    }
+                }
+                catch { }
+            });
         };
 
         PipVolumeSlider.Value = volume;
@@ -55,8 +79,15 @@ public partial class PiPWindow : Window, IDisposable
     {
         if (!_isDisposed)
         {
-            PiPClosedWithTime?.Invoke(_mediaPlayer.Time);
-            Dispose();
+            _isDisposed = true;
+            var time = _mediaPlayer.Time;
+            var audioTrack = _mediaPlayer.AudioTrack;
+
+            _mediaPlayer.SetPause(true);
+
+            PipVideoView.MediaPlayer = null;
+            PiPClosedWithTime?.Invoke(time, audioTrack);
+            DisposeVlcAsync();
         }
         base.OnClosed(e);
     }
@@ -66,10 +97,21 @@ public partial class PiPWindow : Window, IDisposable
         if (_isDisposed) return;
         _isDisposed = true;
 
-        PipVideoView.MediaPlayer = null;
-        _mediaPlayer.Stop();
-        _mediaPlayer.Dispose();
-        _libVLC.Dispose();
+        if (Dispatcher.CheckAccess())
+            PipVideoView.MediaPlayer = null;
+        DisposeVlcAsync();
+    }
+
+    private void DisposeVlcAsync()
+    {
+        var mp = _mediaPlayer;
+        var vlc = _libVLC;
+        Task.Run(() =>
+        {
+            try { mp.Stop(); } catch { }
+            try { mp.Dispose(); } catch { }
+            try { vlc.Dispose(); } catch { }
+        });
     }
 
     #region Drag & Close

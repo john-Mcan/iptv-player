@@ -1,6 +1,6 @@
 # IPTV Player - Progreso y Roadmap
 
-## Estado actual: MVP funcional con persistencia y reconexion — testeado y estable
+## Estado actual: Layout multi-tab con UI profesional — en desarrollo activo
 
 La aplicacion compila y ejecuta correctamente. Todas las funcionalidades core estan implementadas y verificadas en pruebas reales.
 
@@ -82,16 +82,37 @@ La aplicacion compila y ejecuta correctamente. Todas las funcionalidades core es
 - [x] Icono de la app: Chucao como DrawingImage vectorial en App.xaml + SVG de referencia
 - [x] Colores: BgBrush #1A1A1E, SurfaceBrush #262629, AccentBrush #E8752A, AccentHoverBrush #F0924A
 
+### UI profesional y layout multi-tab
+- [x] Barra de titulo oscura via DWM API (`DWMWA_USE_IMMERSIVE_DARK_MODE`)
+- [x] ScrollBars oscuros custom (thin, rounded, accent on drag) aplicados globalmente
+- [x] ListBox y ListBoxItem con estilos dark consistentes
+- [x] Header bar: reloj/fecha, tabs de contenido (LIVE TV | MOVIES | SERIES), selector M3U, icono configuracion
+- [x] Sistema de tabs con `ContentTab` enum y switching via RadioButtons estilizados
+- [x] Tab LIVE TV: sidebar (favoritos/recientes placeholder + buscar + TreeView canales), video + EPG placeholder, panel info canal
+- [x] Tab MOVIES: sidebar (favoritos/continuar placeholder + categorias peliculas), video + buscar + grid de posters
+- [x] Tab SERIES: sidebar (favoritos/continuar placeholder + categorias series), video + buscar + grid de posters
+- [x] Panel info del canal (Live TV): logo ampliado, nombre, grupo, indicador EN VIVO
+- [x] Grids de peliculas/series con cards (poster + nombre), hover effect, doble-clic para reproducir
+- [x] Busqueda contextual por tab (Live TV filtra canales, Movies/Series filtran grids)
+- [x] Si no hay categoria seleccionada en Movies/Series, busqueda aplica a todas las categorias
+- [x] Splitter horizontal entre video y contenido inferior (EPG/grid) redimensionable
+- [x] Panel info derecho auto-oculta en tabs Movies/Series, visible solo en Live TV
+- [x] Persistencia del tab activo en AppSettings
+- [x] Fullscreen actualizado para manejar todos los paneles del nuevo layout
+- [x] Estados vacios para cada seccion (sin favoritos, sin peliculas, sin series, etc.)
+
 ---
 
-## Pendiente para produccion
+## Pendiente — Funcionalidades completas por implementar
 
-### Prioridad alta
+### Layout ya posicionado, logica pendiente
 
-- [ ] **EPG (Electronic Program Guide)**: Soporte para guias de programacion XMLTV vinculadas a la playlist M3U
-- [ ] **Favoritos**: Marcar canales como favoritos con acceso rapido
-- [ ] **Historial reciente**: Ultimos canales reproducidos para acceso rapido
-- [ ] **Icono .ico para el ejecutable**: Convertir el SVG del Chucao a formato .ico multi-resolucion para el ejecutable y la barra de tareas de Windows
+- [ ] **Favoritos**: Logica completa de marcar/desmarcar canales/peliculas/series como favoritos, persistencia en settings, visualizacion en paneles placeholder existentes
+- [ ] **Vistos recientemente / Continuar viendo**: Tracking de historial de reproduccion, persistencia, visualizacion en paneles placeholder existentes
+- [ ] **EPG (Electronic Program Guide)**: Parser XMLTV, vinculacion con canales via tvg-id, visualizacion en el panel EPG placeholder existente
+- [ ] **Info del canal completa**: Programa actual/siguiente (requiere EPG), metadata adicional del stream
+- [ ] **Episodios de series**: Cuando se selecciona una serie en el grid, mostrar lista de episodios en el mismo panel para seleccionar y reproducir
+- [ ] **Configuracion (Settings)**: Pantalla de configuracion accesible desde el icono gear (actualmente dummy)
 
 ### Prioridad media
 
@@ -101,6 +122,7 @@ La aplicacion compila y ejecuta correctamente. Todas las funcionalidades core es
 - [ ] **Selector de calidad de video**: Seleccion manual cuando el stream ofrece multiple bitrate (adaptive)
 - [ ] **Grabacion de stream**: Grabar el stream actual a archivo local (LibVLC lo soporta nativamente)
 - [ ] **Menu contextual en canales**: Click derecho para copiar URL, agregar a favoritos, ver info del stream
+- [ ] **Icono .ico para el ejecutable**: Convertir el SVG del Chucao a formato .ico multi-resolucion
 
 ### Prioridad baja
 
