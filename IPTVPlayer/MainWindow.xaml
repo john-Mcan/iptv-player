@@ -3,6 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:vlc="clr-namespace:LibVLCSharp.WPF;assembly=LibVLCSharp.WPF"
         xmlns:vwp="clr-namespace:WpfToolkit.Controls;assembly=VirtualizingWrapPanel"
+        xmlns:models="clr-namespace:IPTVPlayer.Models"
         Title="IPTV Player" Height="700" Width="1100"
         MinHeight="480" MinWidth="720"
         Background="{StaticResource BgBrush}"
@@ -120,16 +121,20 @@
                         </Grid.RowDefinitions>
 
                         <!-- Favorites / Recent -->
-                        <ScrollViewer Grid.Row="0" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
-                            <Border Background="{StaticResource BgBrush}" CornerRadius="4"
-                                    Margin="6,6,6,2" Padding="10,8">
-                                <StackPanel>
+                        <Border Grid.Row="0" Background="{StaticResource BgBrush}" CornerRadius="4"
+                                Margin="6,6,6,2" Padding="10,8" MaxHeight="320">
+                            <DockPanel>
+                                <StackPanel DockPanel.Dock="Top">
                                     <!-- FAVORITOS -->
                                     <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
                                         <TextBlock Text="&#xE734;" FontFamily="Segoe MDL2 Assets" FontSize="11"
                                                    Foreground="{StaticResource AccentBrush}" Margin="0,0,6,0"/>
                                         <TextBlock Text="FAVORITOS" FontSize="11" FontWeight="SemiBold"
                                                    Foreground="{StaticResource TextDimBrush}"/>
+                                        <Button Style="{StaticResource TextBtn}" Content="Ver todo" Margin="8,0,0,0"
+                                                HorizontalAlignment="Right" FontSize="10" Padding="0"
+                                                Command="{Binding OpenFullListCommand}" CommandParameter="LiveTvFavorites"
+                                                Visibility="{Binding HasLiveTvFavorites, Converter={StaticResource BoolToVis}}"/>
                                     </StackPanel>
                                     <TextBlock Text="Sin favoritos aún" FontSize="11"
                                                Foreground="#404048" FontStyle="Italic" Margin="17,0,0,0">
@@ -144,30 +149,32 @@
                                             </Style>
                                         </TextBlock.Style>
                                     </TextBlock>
-                                    <ItemsControl ItemsSource="{Binding LiveTvFavorites}">
-                                        <ItemsControl.ItemsPanel>
-                                            <ItemsPanelTemplate>
-                                                <WrapPanel/>
-                                            </ItemsPanelTemplate>
-                                        </ItemsControl.ItemsPanel>
-                                        <ItemsControl.ItemTemplate>
-                                            <DataTemplate>
-                                                <Border Width="44" Height="44" Margin="2" CornerRadius="6"
-                                                        Background="{StaticResource SurfaceHighBrush}" ClipToBounds="True"
-                                                        Cursor="Hand" ToolTip="{Binding Name}"
-                                                        MouseLeftButtonDown="FavoriteItem_Click">
-                                                    <Grid>
-                                                        <TextBlock Text="&#xE774;" FontFamily="Segoe MDL2 Assets"
-                                                                   FontSize="16" Foreground="#303035"
-                                                                   HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                                                        <Image Source="{Binding LogoUrl, Converter={StaticResource ImgLoad}, ConverterParameter=48, IsAsync=True}"
-                                                               Stretch="UniformToFill"
-                                                               RenderOptions.BitmapScalingMode="HighQuality"/>
-                                                    </Grid>
-                                                </Border>
-                                            </DataTemplate>
-                                        </ItemsControl.ItemTemplate>
-                                    </ItemsControl>
+                                    <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled" Margin="0,0,0,8">
+                                        <ItemsControl ItemsSource="{Binding LiveTvFavoritesPreview}">
+                                            <ItemsControl.ItemsPanel>
+                                                <ItemsPanelTemplate>
+                                                    <StackPanel Orientation="Horizontal"/>
+                                                </ItemsPanelTemplate>
+                                            </ItemsControl.ItemsPanel>
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate>
+                                                    <Border Width="44" Height="44" Margin="2" CornerRadius="6"
+                                                            Background="{StaticResource SurfaceHighBrush}" ClipToBounds="True"
+                                                            Cursor="Hand" ToolTip="{Binding Name}"
+                                                            MouseLeftButtonDown="FavoriteItem_Click">
+                                                        <Grid>
+                                                            <TextBlock Text="&#xE774;" FontFamily="Segoe MDL2 Assets"
+                                                                       FontSize="16" Foreground="#303035"
+                                                                       HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                            <Image Source="{Binding LogoUrl, Converter={StaticResource ImgLoad}, ConverterParameter=48, IsAsync=True}"
+                                                                   Stretch="UniformToFill"
+                                                                   RenderOptions.BitmapScalingMode="HighQuality"/>
+                                                        </Grid>
+                                                    </Border>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                    </ScrollViewer>
 
                                     <Border Height="1" Background="{StaticResource BorderBrush}" Margin="0,8"/>
 
@@ -177,6 +184,10 @@
                                                    Foreground="{StaticResource AccentBrush}" Margin="0,0,6,0"/>
                                         <TextBlock Text="VISTOS RECIENTEMENTE" FontSize="11" FontWeight="SemiBold"
                                                    Foreground="{StaticResource TextDimBrush}"/>
+                                        <Button Style="{StaticResource TextBtn}" Content="Ver todo" Margin="8,0,0,0"
+                                                HorizontalAlignment="Right" FontSize="10" Padding="0"
+                                                Command="{Binding OpenFullListCommand}" CommandParameter="RecentLiveTv"
+                                                Visibility="{Binding HasRecentLiveTv, Converter={StaticResource BoolToVis}}"/>
                                     </StackPanel>
                                     <TextBlock Text="Sin historial" FontSize="11"
                                                Foreground="#404048" FontStyle="Italic" Margin="17,0,0,0">
@@ -191,42 +202,44 @@
                                             </Style>
                                         </TextBlock.Style>
                                     </TextBlock>
-                                    <ItemsControl ItemsSource="{Binding RecentLiveTv}">
-                                        <ItemsControl.ItemTemplate>
-                                            <DataTemplate>
-                                                <Border Margin="0,1" Padding="4,3" CornerRadius="3" Cursor="Hand"
-                                                        MouseLeftButtonDown="HistoryItem_Click">
-                                                    <Border.Style>
-                                                        <Style TargetType="Border">
-                                                            <Setter Property="Background" Value="Transparent"/>
-                                                            <Style.Triggers>
-                                                                <Trigger Property="IsMouseOver" Value="True">
-                                                                    <Setter Property="Background" Value="{StaticResource SurfaceHighBrush}"/>
-                                                                </Trigger>
-                                                            </Style.Triggers>
-                                                        </Style>
-                                                    </Border.Style>
-                                                    <StackPanel Orientation="Horizontal">
-                                                        <Grid Width="22" Height="22" Margin="0,0,6,0">
-                                                            <TextBlock Text="&#xE774;" FontFamily="Segoe MDL2 Assets"
-                                                                       FontSize="12" Foreground="#303035"
-                                                                       HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                                                            <Image Source="{Binding LogoUrl, Converter={StaticResource ImgLoad}, ConverterParameter=24, IsAsync=True}"
-                                                                   Width="22" Height="22" Stretch="UniformToFill"
-                                                                   RenderOptions.BitmapScalingMode="HighQuality"/>
-                                                        </Grid>
-                                                        <TextBlock Text="{Binding Name}" FontSize="11"
-                                                                   Foreground="{StaticResource TextBrush}"
-                                                                   VerticalAlignment="Center"
-                                                                   TextTrimming="CharacterEllipsis" MaxWidth="170"/>
-                                                    </StackPanel>
-                                                </Border>
-                                            </DataTemplate>
-                                        </ItemsControl.ItemTemplate>
-                                    </ItemsControl>
                                 </StackPanel>
-                            </Border>
-                        </ScrollViewer>
+                                <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Margin="0,0,0,4">
+                                    <ItemsControl ItemsSource="{Binding RecentLiveTvPreview}">
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate>
+                                                    <Border Margin="0,1" Padding="4,3" CornerRadius="3" Cursor="Hand"
+                                                            MouseLeftButtonDown="HistoryItem_Click">
+                                                        <Border.Style>
+                                                            <Style TargetType="Border">
+                                                                <Setter Property="Background" Value="Transparent"/>
+                                                                <Style.Triggers>
+                                                                    <Trigger Property="IsMouseOver" Value="True">
+                                                                        <Setter Property="Background" Value="{StaticResource SurfaceHighBrush}"/>
+                                                                    </Trigger>
+                                                                </Style.Triggers>
+                                                            </Style>
+                                                        </Border.Style>
+                                                        <StackPanel Orientation="Horizontal">
+                                                            <Grid Width="22" Height="22" Margin="0,0,6,0">
+                                                                <TextBlock Text="&#xE774;" FontFamily="Segoe MDL2 Assets"
+                                                                           FontSize="12" Foreground="#303035"
+                                                                           HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                                <Image Source="{Binding LogoUrl, Converter={StaticResource ImgLoad}, ConverterParameter=24, IsAsync=True}"
+                                                                       Width="22" Height="22" Stretch="UniformToFill"
+                                                                       RenderOptions.BitmapScalingMode="HighQuality"/>
+                                                            </Grid>
+                                                            <TextBlock Text="{Binding Name}" FontSize="11"
+                                                                       Foreground="{StaticResource TextBrush}"
+                                                                       VerticalAlignment="Center"
+                                                                       TextTrimming="CharacterEllipsis" MaxWidth="170"/>
+                                                        </StackPanel>
+                                                    </Border>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                </ScrollViewer>
+                            </DockPanel>
+                        </Border>
 
                         <!-- Channel count -->
                         <TextBlock Grid.Row="1" Margin="12,8,12,2"
@@ -239,7 +252,7 @@
 
                         <!-- Search -->
                         <Grid Grid.Row="2" Margin="6,2,6,4">
-                            <TextBox Style="{StaticResource DarkTextBox}"
+                            <TextBox Style="{StaticResource SearchTextBoxStyle}" Tag="Buscar canal..."
                                      Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"
                                      Padding="28,6,8,6" VerticalContentAlignment="Center"/>
                             <TextBlock Text="&#xE721;" FontFamily="Segoe MDL2 Assets" FontSize="13"
@@ -320,22 +333,26 @@
                     <!-- ═══ MOVIES SIDEBAR ═══ -->
                     <Grid Visibility="{Binding IsMoviesActive, Converter={StaticResource BoolToVis}}">
                         <Grid.RowDefinitions>
-                            <RowDefinition Height="Auto" MaxHeight="200"/>
+                            <RowDefinition Height="Auto"/>
                             <RowDefinition Height="Auto"/>
                             <RowDefinition Height="*"/>
                         </Grid.RowDefinitions>
 
                         <!-- Favorites / Continue watching -->
-                        <ScrollViewer Grid.Row="0" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
-                            <Border Background="{StaticResource BgBrush}" CornerRadius="4"
-                                    Margin="6,6,6,2" Padding="10,8">
-                                <StackPanel>
+                        <Border Grid.Row="0" Background="{StaticResource BgBrush}" CornerRadius="4"
+                                Margin="6,6,6,2" Padding="10,8" MaxHeight="320">
+                            <DockPanel>
+                                <StackPanel DockPanel.Dock="Top">
                                     <!-- FAVORITOS -->
                                     <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
                                         <TextBlock Text="&#xE734;" FontFamily="Segoe MDL2 Assets" FontSize="11"
                                                    Foreground="{StaticResource AccentBrush}" Margin="0,0,6,0"/>
                                         <TextBlock Text="FAVORITOS" FontSize="11" FontWeight="SemiBold"
-                                                   Foreground="{StaticResource TextDimBrush}"/>
+                                                    Foreground="{StaticResource TextDimBrush}"/>
+                                        <Button Style="{StaticResource TextBtn}" Content="Ver todo" Margin="8,0,0,0"
+                                                HorizontalAlignment="Right" FontSize="10" Padding="0"
+                                                Command="{Binding OpenFullListCommand}" CommandParameter="MovieFavorites"
+                                                Visibility="{Binding HasMovieFavorites, Converter={StaticResource BoolToVis}}"/>
                                     </StackPanel>
                                     <TextBlock Text="Sin favoritos aún" FontSize="11"
                                                Foreground="#404048" FontStyle="Italic" Margin="17,0,0,0">
@@ -350,30 +367,32 @@
                                             </Style>
                                         </TextBlock.Style>
                                     </TextBlock>
-                                    <ItemsControl ItemsSource="{Binding MovieFavorites}">
-                                        <ItemsControl.ItemsPanel>
-                                            <ItemsPanelTemplate>
-                                                <WrapPanel/>
-                                            </ItemsPanelTemplate>
-                                        </ItemsControl.ItemsPanel>
-                                        <ItemsControl.ItemTemplate>
-                                            <DataTemplate>
-                                                <Border Width="44" Height="60" Margin="2" CornerRadius="4"
-                                                        Background="{StaticResource SurfaceHighBrush}" ClipToBounds="True"
-                                                        Cursor="Hand" ToolTip="{Binding Name}"
-                                                        MouseLeftButtonDown="FavoriteItem_Click">
-                                                    <Grid>
-                                                        <TextBlock Text="&#xE8B2;" FontFamily="Segoe MDL2 Assets"
-                                                                   FontSize="14" Foreground="#303035"
-                                                                   HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                                                        <Image Source="{Binding LogoUrl, Converter={StaticResource ImgLoad}, ConverterParameter=60, IsAsync=True}"
-                                                               Stretch="UniformToFill"
-                                                               RenderOptions.BitmapScalingMode="HighQuality"/>
-                                                    </Grid>
-                                                </Border>
-                                            </DataTemplate>
-                                        </ItemsControl.ItemTemplate>
-                                    </ItemsControl>
+                                    <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled" Margin="0,0,0,8">
+                                        <ItemsControl ItemsSource="{Binding MovieFavoritesPreview}">
+                                            <ItemsControl.ItemsPanel>
+                                                <ItemsPanelTemplate>
+                                                    <StackPanel Orientation="Horizontal"/>
+                                                </ItemsPanelTemplate>
+                                            </ItemsControl.ItemsPanel>
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate>
+                                                    <Border Width="44" Height="60" Margin="2" CornerRadius="4"
+                                                            Background="{StaticResource SurfaceHighBrush}" ClipToBounds="True"
+                                                            Cursor="Hand" ToolTip="{Binding Name}"
+                                                            MouseLeftButtonDown="FavoriteItem_Click">
+                                                        <Grid>
+                                                            <TextBlock Text="&#xE8B2;" FontFamily="Segoe MDL2 Assets"
+                                                                       FontSize="14" Foreground="#303035"
+                                                                       HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                            <Image Source="{Binding LogoUrl, Converter={StaticResource ImgLoad}, ConverterParameter=60, IsAsync=True}"
+                                                                   Stretch="UniformToFill"
+                                                                   RenderOptions.BitmapScalingMode="HighQuality"/>
+                                                        </Grid>
+                                                    </Border>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                    </ScrollViewer>
 
                                     <Border Height="1" Background="{StaticResource BorderBrush}" Margin="0,8"/>
 
@@ -383,6 +402,10 @@
                                                    Foreground="{StaticResource AccentBrush}" Margin="0,0,6,0"/>
                                         <TextBlock Text="CONTINUAR VIENDO" FontSize="11" FontWeight="SemiBold"
                                                    Foreground="{StaticResource TextDimBrush}"/>
+                                        <Button Style="{StaticResource TextBtn}" Content="Ver todo" Margin="8,0,0,0"
+                                                HorizontalAlignment="Right" FontSize="10" Padding="0"
+                                                Command="{Binding OpenFullListCommand}" CommandParameter="ContinueWatchingMovies"
+                                                Visibility="{Binding HasContinueWatchingMovies, Converter={StaticResource BoolToVis}}"/>
                                     </StackPanel>
                                     <TextBlock Text="Sin contenido pendiente" FontSize="11"
                                                Foreground="#404048" FontStyle="Italic" Margin="17,0,0,0">
@@ -397,49 +420,51 @@
                                             </Style>
                                         </TextBlock.Style>
                                     </TextBlock>
-                                    <ItemsControl ItemsSource="{Binding ContinueWatchingMovies}">
-                                        <ItemsControl.ItemTemplate>
-                                            <DataTemplate>
-                                                <Border Margin="0,2" CornerRadius="4" Cursor="Hand" ClipToBounds="True"
-                                                        MouseLeftButtonDown="ContinueWatchingItem_Click">
-                                                    <Border.Style>
-                                                        <Style TargetType="Border">
-                                                            <Setter Property="Background" Value="{StaticResource SurfaceHighBrush}"/>
-                                                            <Style.Triggers>
-                                                                <Trigger Property="IsMouseOver" Value="True">
-                                                                    <Setter Property="Background" Value="#40E8752A"/>
-                                                                </Trigger>
-                                                            </Style.Triggers>
-                                                        </Style>
-                                                    </Border.Style>
-                                                    <Grid>
-                                                        <StackPanel Orientation="Horizontal" Margin="4,3">
-                                                            <Grid Width="32" Height="44" Margin="0,0,6,0">
-                                                                <Border Background="#202025" CornerRadius="3" ClipToBounds="True">
-                                                                    <Image Source="{Binding LogoUrl, Converter={StaticResource ImgLoad}, ConverterParameter=40, IsAsync=True}"
-                                                                           Stretch="UniformToFill"
-                                                                           RenderOptions.BitmapScalingMode="HighQuality"/>
-                                                                </Border>
-                                                            </Grid>
-                                                            <StackPanel VerticalAlignment="Center">
-                                                                <TextBlock Text="{Binding Name}" FontSize="11"
-                                                                           Foreground="{StaticResource TextBrush}"
-                                                                           TextTrimming="CharacterEllipsis" MaxWidth="150"/>
-                                                            </StackPanel>
-                                                        </StackPanel>
-                                                        <ProgressBar Height="3" VerticalAlignment="Bottom"
-                                                                     Value="{Binding ProgressPercent, Mode=OneWay}"
-                                                                     Maximum="100" Minimum="0"
-                                                                     Foreground="{StaticResource AccentBrush}"
-                                                                     Background="#333" BorderThickness="0"/>
-                                                    </Grid>
-                                                </Border>
-                                            </DataTemplate>
-                                        </ItemsControl.ItemTemplate>
-                                    </ItemsControl>
                                 </StackPanel>
-                            </Border>
-                        </ScrollViewer>
+                                <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Margin="0,0,0,4">
+                                    <ItemsControl ItemsSource="{Binding ContinueWatchingMoviesPreview}">
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate>
+                                                    <Border Margin="0,2" CornerRadius="4" Cursor="Hand" ClipToBounds="True"
+                                                            MouseLeftButtonDown="ContinueWatchingItem_Click">
+                                                        <Border.Style>
+                                                            <Style TargetType="Border">
+                                                                <Setter Property="Background" Value="{StaticResource SurfaceHighBrush}"/>
+                                                                <Style.Triggers>
+                                                                    <Trigger Property="IsMouseOver" Value="True">
+                                                                        <Setter Property="Background" Value="#40E8752A"/>
+                                                                    </Trigger>
+                                                                </Style.Triggers>
+                                                            </Style>
+                                                        </Border.Style>
+                                                        <Grid>
+                                                            <StackPanel Orientation="Horizontal" Margin="4,3">
+                                                                <Grid Width="32" Height="44" Margin="0,0,6,0">
+                                                                    <Border Background="#202025" CornerRadius="3" ClipToBounds="True">
+                                                                        <Image Source="{Binding LogoUrl, Converter={StaticResource ImgLoad}, ConverterParameter=40, IsAsync=True}"
+                                                                               Stretch="UniformToFill"
+                                                                               RenderOptions.BitmapScalingMode="HighQuality"/>
+                                                                    </Border>
+                                                                </Grid>
+                                                                <StackPanel VerticalAlignment="Center">
+                                                                    <TextBlock Text="{Binding Name}" FontSize="11"
+                                                                               Foreground="{StaticResource TextBrush}"
+                                                                               TextTrimming="CharacterEllipsis" MaxWidth="150"/>
+                                                                </StackPanel>
+                                                            </StackPanel>
+                                                            <ProgressBar Height="3" VerticalAlignment="Bottom"
+                                                                         Value="{Binding ProgressPercent, Mode=OneWay}"
+                                                                         Maximum="100" Minimum="0"
+                                                                         Foreground="{StaticResource AccentBrush}"
+                                                                         Background="#333" BorderThickness="0"/>
+                                                        </Grid>
+                                                    </Border>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                </ScrollViewer>
+                            </DockPanel>
+                        </Border>
 
                         <!-- Category header -->
                         <TextBlock Grid.Row="1" Margin="12,8,12,2"
@@ -476,22 +501,26 @@
                     <!-- ═══ SERIES SIDEBAR ═══ -->
                     <Grid Visibility="{Binding IsSeriesActive, Converter={StaticResource BoolToVis}}">
                         <Grid.RowDefinitions>
-                            <RowDefinition Height="Auto" MaxHeight="200"/>
+                            <RowDefinition Height="Auto"/>
                             <RowDefinition Height="Auto"/>
                             <RowDefinition Height="*"/>
                         </Grid.RowDefinitions>
 
                         <!-- Favorites / Continue watching -->
-                        <ScrollViewer Grid.Row="0" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
-                            <Border Background="{StaticResource BgBrush}" CornerRadius="4"
-                                    Margin="6,6,6,2" Padding="10,8">
-                                <StackPanel>
+                        <Border Grid.Row="0" Background="{StaticResource BgBrush}" CornerRadius="4"
+                                Margin="6,6,6,2" Padding="10,8" MaxHeight="320">
+                            <DockPanel>
+                                <StackPanel DockPanel.Dock="Top">
                                     <!-- FAVORITOS -->
                                     <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
                                         <TextBlock Text="&#xE734;" FontFamily="Segoe MDL2 Assets" FontSize="11"
                                                    Foreground="{StaticResource AccentBrush}" Margin="0,0,6,0"/>
                                         <TextBlock Text="FAVORITOS" FontSize="11" FontWeight="SemiBold"
                                                    Foreground="{StaticResource TextDimBrush}"/>
+                                        <Button Style="{StaticResource TextBtn}" Content="Ver todo" Margin="8,0,0,0"
+                                                HorizontalAlignment="Right" FontSize="10" Padding="0"
+                                                Command="{Binding OpenFullListCommand}" CommandParameter="SeriesFavorites"
+                                                Visibility="{Binding HasSeriesFavorites, Converter={StaticResource BoolToVis}}"/>
                                     </StackPanel>
                                     <TextBlock Text="Sin favoritos aún" FontSize="11"
                                                Foreground="#404048" FontStyle="Italic" Margin="17,0,0,0">
@@ -506,30 +535,32 @@
                                             </Style>
                                         </TextBlock.Style>
                                     </TextBlock>
-                                    <ItemsControl ItemsSource="{Binding SeriesFavorites}">
-                                        <ItemsControl.ItemsPanel>
-                                            <ItemsPanelTemplate>
-                                                <WrapPanel/>
-                                            </ItemsPanelTemplate>
-                                        </ItemsControl.ItemsPanel>
-                                        <ItemsControl.ItemTemplate>
-                                            <DataTemplate>
-                                                <Border Width="44" Height="60" Margin="2" CornerRadius="4"
-                                                        Background="{StaticResource SurfaceHighBrush}" ClipToBounds="True"
-                                                        Cursor="Hand" ToolTip="{Binding Name}"
-                                                        MouseLeftButtonDown="SeriesFavoriteItem_Click">
-                                                    <Grid>
-                                                        <TextBlock Text="&#xE786;" FontFamily="Segoe MDL2 Assets"
-                                                                   FontSize="14" Foreground="#303035"
-                                                                   HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                                                        <Image Source="{Binding LogoUrl, Converter={StaticResource ImgLoad}, ConverterParameter=60, IsAsync=True}"
-                                                               Stretch="UniformToFill"
-                                                               RenderOptions.BitmapScalingMode="HighQuality"/>
-                                                    </Grid>
-                                                </Border>
-                                            </DataTemplate>
-                                        </ItemsControl.ItemTemplate>
-                                    </ItemsControl>
+                                    <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled" Margin="0,0,0,8">
+                                        <ItemsControl ItemsSource="{Binding SeriesFavoritesPreview}">
+                                            <ItemsControl.ItemsPanel>
+                                                <ItemsPanelTemplate>
+                                                    <StackPanel Orientation="Horizontal"/>
+                                                </ItemsPanelTemplate>
+                                            </ItemsControl.ItemsPanel>
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate>
+                                                    <Border Width="44" Height="60" Margin="2" CornerRadius="4"
+                                                            Background="{StaticResource SurfaceHighBrush}" ClipToBounds="True"
+                                                            Cursor="Hand" ToolTip="{Binding Name}"
+                                                            MouseLeftButtonDown="SeriesFavoriteItem_Click">
+                                                        <Grid>
+                                                            <TextBlock Text="&#xE786;" FontFamily="Segoe MDL2 Assets"
+                                                                       FontSize="14" Foreground="#303035"
+                                                                       HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                            <Image Source="{Binding LogoUrl, Converter={StaticResource ImgLoad}, ConverterParameter=60, IsAsync=True}"
+                                                                   Stretch="UniformToFill"
+                                                                   RenderOptions.BitmapScalingMode="HighQuality"/>
+                                                        </Grid>
+                                                    </Border>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                    </ScrollViewer>
 
                                     <Border Height="1" Background="{StaticResource BorderBrush}" Margin="0,8"/>
 
@@ -539,6 +570,10 @@
                                                    Foreground="{StaticResource AccentBrush}" Margin="0,0,6,0"/>
                                         <TextBlock Text="CONTINUAR VIENDO" FontSize="11" FontWeight="SemiBold"
                                                    Foreground="{StaticResource TextDimBrush}"/>
+                                        <Button Style="{StaticResource TextBtn}" Content="Ver todo" Margin="8,0,0,0"
+                                                HorizontalAlignment="Right" FontSize="10" Padding="0"
+                                                Command="{Binding OpenFullListCommand}" CommandParameter="ContinueWatchingSeries"
+                                                Visibility="{Binding HasContinueWatchingSeries, Converter={StaticResource BoolToVis}}"/>
                                     </StackPanel>
                                     <TextBlock Text="Sin contenido pendiente" FontSize="11"
                                                Foreground="#404048" FontStyle="Italic" Margin="17,0,0,0">
@@ -553,49 +588,51 @@
                                             </Style>
                                         </TextBlock.Style>
                                     </TextBlock>
-                                    <ItemsControl ItemsSource="{Binding ContinueWatchingSeries}">
-                                        <ItemsControl.ItemTemplate>
-                                            <DataTemplate>
-                                                <Border Margin="0,2" CornerRadius="4" Cursor="Hand" ClipToBounds="True"
-                                                        MouseLeftButtonDown="ContinueWatchingItem_Click">
-                                                    <Border.Style>
-                                                        <Style TargetType="Border">
-                                                            <Setter Property="Background" Value="{StaticResource SurfaceHighBrush}"/>
-                                                            <Style.Triggers>
-                                                                <Trigger Property="IsMouseOver" Value="True">
-                                                                    <Setter Property="Background" Value="#40E8752A"/>
-                                                                </Trigger>
-                                                            </Style.Triggers>
-                                                        </Style>
-                                                    </Border.Style>
-                                                    <Grid>
-                                                        <StackPanel Orientation="Horizontal" Margin="4,3">
-                                                            <Grid Width="32" Height="44" Margin="0,0,6,0">
-                                                                <Border Background="#202025" CornerRadius="3" ClipToBounds="True">
-                                                                    <Image Source="{Binding LogoUrl, Converter={StaticResource ImgLoad}, ConverterParameter=40, IsAsync=True}"
-                                                                           Stretch="UniformToFill"
-                                                                           RenderOptions.BitmapScalingMode="HighQuality"/>
-                                                                </Border>
-                                                            </Grid>
-                                                            <StackPanel VerticalAlignment="Center">
-                                                                <TextBlock Text="{Binding Name}" FontSize="11"
-                                                                           Foreground="{StaticResource TextBrush}"
-                                                                           TextTrimming="CharacterEllipsis" MaxWidth="150"/>
-                                                            </StackPanel>
-                                                        </StackPanel>
-                                                        <ProgressBar Height="3" VerticalAlignment="Bottom"
-                                                                     Value="{Binding ProgressPercent, Mode=OneWay}"
-                                                                     Maximum="100" Minimum="0"
-                                                                     Foreground="{StaticResource AccentBrush}"
-                                                                     Background="#333" BorderThickness="0"/>
-                                                    </Grid>
-                                                </Border>
-                                            </DataTemplate>
-                                        </ItemsControl.ItemTemplate>
-                                    </ItemsControl>
                                 </StackPanel>
-                            </Border>
-                        </ScrollViewer>
+                                <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Margin="0,0,0,4">
+                                    <ItemsControl ItemsSource="{Binding ContinueWatchingSeriesPreview}">
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate>
+                                                    <Border Margin="0,2" CornerRadius="4" Cursor="Hand" ClipToBounds="True"
+                                                            MouseLeftButtonDown="ContinueWatchingItem_Click">
+                                                        <Border.Style>
+                                                            <Style TargetType="Border">
+                                                                <Setter Property="Background" Value="{StaticResource SurfaceHighBrush}"/>
+                                                                <Style.Triggers>
+                                                                    <Trigger Property="IsMouseOver" Value="True">
+                                                                        <Setter Property="Background" Value="#40E8752A"/>
+                                                                    </Trigger>
+                                                                </Style.Triggers>
+                                                            </Style>
+                                                        </Border.Style>
+                                                        <Grid>
+                                                            <StackPanel Orientation="Horizontal" Margin="4,3">
+                                                                <Grid Width="32" Height="44" Margin="0,0,6,0">
+                                                                    <Border Background="#202025" CornerRadius="3" ClipToBounds="True">
+                                                                        <Image Source="{Binding LogoUrl, Converter={StaticResource ImgLoad}, ConverterParameter=40, IsAsync=True}"
+                                                                               Stretch="UniformToFill"
+                                                                               RenderOptions.BitmapScalingMode="HighQuality"/>
+                                                                    </Border>
+                                                                </Grid>
+                                                                <StackPanel VerticalAlignment="Center">
+                                                                    <TextBlock Text="{Binding Name}" FontSize="11"
+                                                                               Foreground="{StaticResource TextBrush}"
+                                                                               TextTrimming="CharacterEllipsis" MaxWidth="150"/>
+                                                                </StackPanel>
+                                                            </StackPanel>
+                                                            <ProgressBar Height="3" VerticalAlignment="Bottom"
+                                                                         Value="{Binding ProgressPercent, Mode=OneWay}"
+                                                                         Maximum="100" Minimum="0"
+                                                                         Foreground="{StaticResource AccentBrush}"
+                                                                         Background="#333" BorderThickness="0"/>
+                                                        </Grid>
+                                                    </Border>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                </ScrollViewer>
+                            </DockPanel>
+                        </Border>
 
                         <!-- Category header -->
                         <TextBlock Grid.Row="1" Margin="12,8,12,2"
@@ -817,6 +854,172 @@
                                     </Grid>
                                 </StackPanel>
                             </Border>
+                            <!-- Full List View Overlay -->
+                            <Border x:Name="FullListView" Background="{StaticResource SurfaceBrush}"
+                                    Visibility="{Binding IsViewingFullList, Converter={StaticResource BoolToVis}}">
+                                <Grid>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="*"/>
+                                    </Grid.RowDefinitions>
+                                    <Border Grid.Row="0" BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,0,1" Padding="16,12">
+                                        <Grid>
+                                            <TextBlock Text="{Binding FullListTitle}" FontSize="18" FontWeight="SemiBold"
+                                                       Foreground="{StaticResource TextBrush}" VerticalAlignment="Center"/>
+                                            <Button Style="{StaticResource IconBtn}" Content="&#xE711;" HorizontalAlignment="Right"
+                                                    Command="{Binding CloseFullListCommand}" Padding="8" ToolTip="Cerrar"/>
+                                        </Grid>
+                                    </Border>
+                                    <ListBox Grid.Row="1" ItemsSource="{Binding ActiveFullList}" Background="Transparent" BorderThickness="0" Margin="8">
+                                        <ListBox.ItemsPanel>
+                                            <ItemsPanelTemplate>
+                                                <vwp:VirtualizingWrapPanel/>
+                                            </ItemsPanelTemplate>
+                                        </ListBox.ItemsPanel>
+                                        <ListBox.ItemContainerStyle>
+                                            <Style TargetType="ListBoxItem">
+                                                <Setter Property="Padding" Value="0"/>
+                                                <Setter Property="Margin" Value="0"/>
+                                                <Setter Property="Template">
+                                                    <Setter.Value>
+                                                        <ControlTemplate TargetType="ListBoxItem">
+                                                            <ContentPresenter/>
+                                                        </ControlTemplate>
+                                                    </Setter.Value>
+                                                </Setter>
+                                            </Style>
+                                        </ListBox.ItemContainerStyle>
+                                        <ListBox.ItemTemplate>
+                                            <DataTemplate>
+                                                <ContentControl Content="{Binding}">
+                                                    <ContentControl.Resources>
+                                                        <!-- Template for Channel -->
+                                                        <DataTemplate DataType="{x:Type models:Channel}">
+                                                            <Border Width="160" Margin="6" CornerRadius="6" ClipToBounds="True" Background="{StaticResource SurfaceHighBrush}" Cursor="Hand">
+                                                                <Border.InputBindings>
+                                                                    <MouseBinding MouseAction="LeftClick" Command="{Binding DataContext.PlayFromFullListCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="{Binding}" />
+                                                                </Border.InputBindings>
+                                                                <Grid Height="220">
+                                                                    <Image Source="{Binding LogoUrl, Converter={StaticResource ImgLoad}, ConverterParameter=220, IsAsync=True}" Stretch="UniformToFill" RenderOptions.BitmapScalingMode="HighQuality"/>
+                                                                    <Border VerticalAlignment="Bottom" Background="#B2000000" Padding="8,6">
+                                                                        <TextBlock Text="{Binding Name}" Foreground="White" FontSize="12" TextWrapping="Wrap" MaxHeight="36" TextTrimming="CharacterEllipsis"/>
+                                                                    </Border>
+                                                                </Grid>
+                                                            </Border>
+                                                        </DataTemplate>
+                                                        <!-- Template for WatchHistoryEntry -->
+                                                        <DataTemplate DataType="{x:Type models:WatchHistoryEntry}">
+                                                            <Border Width="160" Margin="6" CornerRadius="6" ClipToBounds="True" Background="{StaticResource SurfaceHighBrush}" Cursor="Hand">
+                                                                <Border.InputBindings>
+                                                                    <MouseBinding MouseAction="LeftClick" Command="{Binding DataContext.PlayFromFullListCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="{Binding}" />
+                                                                </Border.InputBindings>
+                                                                <Grid Height="220">
+                                                                    <Image Source="{Binding LogoUrl, Converter={StaticResource ImgLoad}, ConverterParameter=220, IsAsync=True}" Stretch="UniformToFill" RenderOptions.BitmapScalingMode="HighQuality"/>
+                                                                    <Border VerticalAlignment="Bottom" Background="#B2000000" Padding="8,6">
+                                                                        <TextBlock Text="{Binding Name}" Foreground="White" FontSize="12" TextWrapping="Wrap" MaxHeight="36" TextTrimming="CharacterEllipsis"/>
+                                                                    </Border>
+                                                                    <ProgressBar Height="4" VerticalAlignment="Bottom" Value="{Binding ProgressPercent, Mode=OneWay}" Maximum="100" Minimum="0" Foreground="{StaticResource AccentBrush}" Background="#333" BorderThickness="0"/>
+                                                                </Grid>
+                                                            </Border>
+                                                        </DataTemplate>
+                                                    </ContentControl.Resources>
+                                                </ContentControl>
+                                            </DataTemplate>
+                                        </ListBox.ItemTemplate>
+                                    </ListBox>
+                                </Grid>
+                            </Border>
+
+                            <!-- ════════════════ PLAYER CONTROLS (Floating) ════════════════ -->
+                            <Border x:Name="ControlsBar" VerticalAlignment="Bottom" Background="#E6101015"
+                                    Margin="20,0,20,20" Padding="12,10" CornerRadius="8"
+                                    BorderBrush="#30FFFFFF" BorderThickness="1"
+                                    Visibility="{Binding IsViewingFullList, Converter={StaticResource InvBoolToVis}}">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+
+                                    <Button Grid.Column="0" Style="{StaticResource IconBtn}"
+                                            Command="{Binding Player.TogglePlayPauseCommand}" Margin="0,0,6,0" Padding="8" Width="36" Height="36">
+                                        <Grid>
+                                            <TextBlock Text="&#xE768;" FontSize="16"
+                                                       Visibility="{Binding Player.IsPlaying, Converter={StaticResource InvBoolToVis}}"/>
+                                            <TextBlock Text="&#xE769;" FontSize="16"
+                                                       Visibility="{Binding Player.IsPlaying, Converter={StaticResource BoolToVis}}"/>
+                                        </Grid>
+                                    </Button>
+
+                                    <Button Grid.Column="1" Style="{StaticResource IconBtn}"
+                                            Content="&#xE71A;" FontSize="16" Padding="8" Width="36" Height="36"
+                                            Command="{Binding Player.StopCommand}" Margin="0,0,12,0"/>
+
+                                    <Slider x:Name="SeekSlider" Grid.Column="2"
+                                            Style="{StaticResource SeekSlider}"
+                                            Value="{Binding Player.Position, Mode=TwoWay}"
+                                            VerticalAlignment="Center" Margin="12,0"/>
+
+                                    <TextBlock Grid.Column="3" VerticalAlignment="Center" Margin="12,0"
+                                               Foreground="{StaticResource TextDimBrush}" FontSize="12"
+                                               FontFamily="Consolas">
+                                        <Run Text="{Binding Player.CurrentTime, Converter={StaticResource TimeToStr}, Mode=OneWay}" Foreground="White"/>
+                                        <Run Text="/"/>
+                                        <Run Text="{Binding Player.Duration, Converter={StaticResource TimeToStr}, Mode=OneWay}"/>
+                                    </TextBlock>
+
+                                    <Button Grid.Column="4" Style="{StaticResource IconBtn}" Margin="12,0,0,0" Padding="8" Width="32" Height="32"
+                                            Command="{Binding Player.ToggleMuteCommand}">
+                                        <Grid>
+                                            <TextBlock Text="&#xE767;" FontSize="14"
+                                                       Visibility="{Binding Player.IsMuted, Converter={StaticResource InvBoolToVis}}"/>
+                                            <TextBlock Text="&#xE74F;" FontSize="14"
+                                                       Visibility="{Binding Player.IsMuted, Converter={StaticResource BoolToVis}}"/>
+                                        </Grid>
+                                    </Button>
+
+                                    <Slider Grid.Column="5" Style="{StaticResource VolumeSlider}" Width="100"
+                                            Value="{Binding Player.Volume, Mode=TwoWay}"
+                                            Maximum="100" VerticalAlignment="Center" Margin="8,0,16,0"/>
+
+                                    <ComboBox Grid.Column="6" Style="{StaticResource DarkCombo}"
+                                              ItemsSource="{Binding Player.AudioTracks}"
+                                              SelectedItem="{Binding Player.SelectedAudioTrack}"
+                                              DisplayMemberPath="Name" Margin="0,0,8,0" Width="120">
+                                        <ComboBox.ToolTip>Pista de Audio</ComboBox.ToolTip>
+                                    </ComboBox>
+
+                                    <ComboBox Grid.Column="7" Style="{StaticResource DarkCombo}"
+                                              ItemsSource="{Binding Player.SubtitleTracks}"
+                                              SelectedItem="{Binding Player.SelectedSubtitleTrack}"
+                                              DisplayMemberPath="Name" Margin="0,0,16,0" Width="120">
+                                        <ComboBox.ToolTip>Subtítulos</ComboBox.ToolTip>
+                                    </ComboBox>
+
+                                    <Button Grid.Column="8" Style="{StaticResource IconBtn}" Padding="8" Width="32" Height="32"
+                                            Content="&#xE8A7;" Click="PiP_Click" Margin="0,0,6,0">
+                                        <Button.ToolTip>Picture in Picture</Button.ToolTip>
+                                    </Button>
+
+                                    <Button Grid.Column="9" Style="{StaticResource IconBtn}" Padding="8" Width="32" Height="32"
+                                            Click="Fullscreen_Click">
+                                        <Button.ToolTip>Pantalla Completa (F11)</Button.ToolTip>
+                                        <Grid>
+                                            <TextBlock x:Name="FsIconExpand" Text="&#xE740;"/>
+                                            <TextBlock x:Name="FsIconRestore" Text="&#xE73F;" Visibility="Collapsed"/>
+                                        </Grid>
+                                    </Button>
+                                </Grid>
+                            </Border>
+
                         </Grid>
                     </vlc:VideoView>
                 </Grid>
@@ -946,7 +1149,7 @@
 
                     <!-- Search -->
                     <Grid Grid.Row="0" Margin="6,4,6,4">
-                        <TextBox Style="{StaticResource DarkTextBox}"
+                        <TextBox Style="{StaticResource SearchTextBoxStyle}" Tag="Buscar película..."
                                  Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"
                                  Padding="28,6,8,6" VerticalContentAlignment="Center"/>
                         <TextBlock Text="&#xE721;" FontFamily="Segoe MDL2 Assets" FontSize="13"
@@ -1095,7 +1298,7 @@
 
                     <!-- Search -->
                     <Grid Grid.Row="1" Margin="6,4,6,4">
-                        <TextBox Style="{StaticResource DarkTextBox}"
+                        <TextBox Style="{StaticResource SearchTextBoxStyle}" Tag="Buscar serie..."
                                  Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"
                                  Padding="28,6,8,6" VerticalContentAlignment="Center"/>
                         <TextBlock Text="&#xE721;" FontFamily="Segoe MDL2 Assets" FontSize="13"
@@ -1308,93 +1511,6 @@
             </Border>
         </Grid>
 
-        <!-- ════════════════ PLAYER CONTROLS ════════════════ -->
-        <Border x:Name="ControlsBar" Grid.Row="2" Background="{StaticResource SurfaceBrush}"
-                Padding="8,6" BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,1,0,0">
-            <Grid>
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="Auto"/>
-                    <ColumnDefinition Width="Auto"/>
-                    <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="Auto"/>
-                    <ColumnDefinition Width="Auto"/>
-                    <ColumnDefinition Width="Auto"/>
-                    <ColumnDefinition Width="Auto"/>
-                    <ColumnDefinition Width="Auto"/>
-                    <ColumnDefinition Width="Auto"/>
-                    <ColumnDefinition Width="Auto"/>
-                </Grid.ColumnDefinitions>
-
-                <Button Grid.Column="0" Style="{StaticResource IconBtn}"
-                        Command="{Binding Player.TogglePlayPauseCommand}" Margin="0,0,2,0">
-                    <Grid>
-                        <TextBlock Text="&#xE768;"
-                                   Visibility="{Binding Player.IsPlaying, Converter={StaticResource InvBoolToVis}}"/>
-                        <TextBlock Text="&#xE769;"
-                                   Visibility="{Binding Player.IsPlaying, Converter={StaticResource BoolToVis}}"/>
-                    </Grid>
-                </Button>
-
-                <Button Grid.Column="1" Style="{StaticResource IconBtn}"
-                        Content="&#xE71A;"
-                        Command="{Binding Player.StopCommand}" Margin="0,0,6,0"/>
-
-                <Slider x:Name="SeekSlider" Grid.Column="2"
-                        Style="{StaticResource SeekSlider}"
-                        Value="{Binding Player.Position, Mode=TwoWay}"
-                        VerticalAlignment="Center" Margin="4,0"/>
-
-                <TextBlock Grid.Column="3" VerticalAlignment="Center" Margin="6,0"
-                           Foreground="{StaticResource TextDimBrush}" FontSize="12"
-                           FontFamily="Consolas">
-                    <Run Text="{Binding Player.CurrentTime, Converter={StaticResource TimeToStr}, Mode=OneWay}"/>
-                    <Run Text="/"/>
-                    <Run Text="{Binding Player.Duration, Converter={StaticResource TimeToStr}, Mode=OneWay}"/>
-                </TextBlock>
-
-                <Button Grid.Column="4" Style="{StaticResource IconBtn}"
-                        Command="{Binding Player.ToggleMuteCommand}">
-                    <Grid>
-                        <TextBlock Text="&#xE767;"
-                                   Visibility="{Binding Player.IsMuted, Converter={StaticResource InvBoolToVis}}"/>
-                        <TextBlock Text="&#xE74F;"
-                                   Visibility="{Binding Player.IsMuted, Converter={StaticResource BoolToVis}}"/>
-                    </Grid>
-                </Button>
-
-                <Slider Grid.Column="5" Style="{StaticResource VolumeSlider}"
-                        Value="{Binding Player.Volume, Mode=TwoWay}"
-                        Maximum="100" VerticalAlignment="Center" Margin="0,0,8,0"/>
-
-                <ComboBox Grid.Column="6" Style="{StaticResource DarkCombo}"
-                          ItemsSource="{Binding Player.AudioTracks}"
-                          SelectedItem="{Binding Player.SelectedAudioTrack}"
-                          DisplayMemberPath="Name" Margin="0,0,4,0">
-                    <ComboBox.ToolTip>Pista de Audio</ComboBox.ToolTip>
-                </ComboBox>
-
-                <ComboBox Grid.Column="7" Style="{StaticResource DarkCombo}"
-                          ItemsSource="{Binding Player.SubtitleTracks}"
-                          SelectedItem="{Binding Player.SelectedSubtitleTrack}"
-                          DisplayMemberPath="Name" Margin="0,0,4,0">
-                    <ComboBox.ToolTip>Subtítulos</ComboBox.ToolTip>
-                </ComboBox>
-
-                <Button Grid.Column="8" Style="{StaticResource IconBtn}"
-                        Content="&#xE8A7;" Click="PiP_Click" Margin="0,0,2,0">
-                    <Button.ToolTip>Picture in Picture</Button.ToolTip>
-                </Button>
-
-                <Button Grid.Column="9" Style="{StaticResource IconBtn}"
-                        Click="Fullscreen_Click">
-                    <Button.ToolTip>Pantalla Completa (F11)</Button.ToolTip>
-                    <Grid>
-                        <TextBlock x:Name="FsIconExpand" Text="&#xE740;"/>
-                        <TextBlock x:Name="FsIconRestore" Text="&#xE73F;" Visibility="Collapsed"/>
-                    </Grid>
-                </Button>
-            </Grid>
-        </Border>
 
         <!-- ════════════════ STATUS BAR ════════════════ -->
         <Border x:Name="StatusBar" Grid.Row="3" Background="{StaticResource BgBrush}" Padding="10,4"

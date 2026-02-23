@@ -136,6 +136,64 @@ public partial class MainViewModel : ObservableObject
 
     public PlayerViewModel Player { get; } = new();
 
+    // Full List View state
+    [ObservableProperty]
+    private bool _isViewingFullList;
+
+    [ObservableProperty]
+    private string _fullListTitle = string.Empty;
+
+    [ObservableProperty]
+    private IEnumerable<object> _activeFullList = [];
+
+    // Previews for sidebars
+    public IEnumerable<Channel> LiveTvFavoritesPreview => LiveTvFavorites;
+    public IEnumerable<Channel> MovieFavoritesPreview => MovieFavorites;
+    public IEnumerable<Channel> SeriesFavoritesPreview => SeriesFavorites;
+    public IEnumerable<WatchHistoryEntry> RecentLiveTvPreview => RecentLiveTv;
+    public IEnumerable<WatchHistoryEntry> ContinueWatchingMoviesPreview => ContinueWatchingMovies;
+    public IEnumerable<WatchHistoryEntry> ContinueWatchingSeriesPreview => ContinueWatchingSeries;
+
+    [RelayCommand]
+    private void OpenFullList(string listType)
+    {
+        IsViewingFullList = true;
+        switch (listType)
+        {
+            case "LiveTvFavorites":
+                FullListTitle = "Favoritos TV en Vivo";
+                ActiveFullList = LiveTvFavorites;
+                break;
+            case "MovieFavorites":
+                FullListTitle = "Películas Favoritas";
+                ActiveFullList = MovieFavorites;
+                break;
+            case "SeriesFavorites":
+                FullListTitle = "Series Favoritas";
+                ActiveFullList = SeriesFavorites;
+                break;
+            case "RecentLiveTv":
+                FullListTitle = "Vistos Recientemente";
+                ActiveFullList = RecentLiveTv;
+                break;
+            case "ContinueWatchingMovies":
+                FullListTitle = "Continuar Viendo (Películas)";
+                ActiveFullList = ContinueWatchingMovies;
+                break;
+            case "ContinueWatchingSeries":
+                FullListTitle = "Continuar Viendo (Series)";
+                ActiveFullList = ContinueWatchingSeries;
+                break;
+        }
+    }
+
+    [RelayCommand]
+    private void CloseFullList()
+    {
+        IsViewingFullList = false;
+        ActiveFullList = [];
+    }
+
     public MainViewModel()
     {
         Player.OnPositionUpdated = UpdateWatchPosition;
@@ -164,6 +222,9 @@ public partial class MainViewModel : ObservableObject
     {
         if (string.IsNullOrWhiteSpace(PlaylistUrl)) return;
 
+        // Backup existing valid URL
+        var previousUrl = RecentUrls.FirstOrDefault(); 
+        
         try
         {
             IsLoading = true;
@@ -222,6 +283,11 @@ public partial class MainViewModel : ObservableObject
         {
             ErrorMessage = $"Error: {ex.Message}";
             Player.StatusText = "Error al cargar playlist";
+            // Restore previous functional URL if loading failed
+            if (!string.IsNullOrEmpty(previousUrl) && previousUrl != PlaylistUrl)
+            {
+                PlaylistUrl = previousUrl;
+            }
         }
         finally
         {
@@ -579,6 +645,15 @@ public partial class MainViewModel : ObservableObject
 
     #region Playback
 
+    [RelayCommand]
+    private void PlayFromFullList(object? item)
+    {
+        if (item is Channel channel)
+            PlayChannel(channel);
+        else if (item is WatchHistoryEntry history)
+            PlayFromHistory(history);
+    }
+
     public void PlayChannel(Channel channel)
     {
         SaveCurrentWatchPosition();
@@ -586,6 +661,7 @@ public partial class MainViewModel : ObservableObject
         AddToWatchHistory(channel);
         Player.PlayChannel(channel);
         UpdateEpgForChannel(channel);
+        IsViewingFullList = false;
     }
 
     public void PlayFromHistory(WatchHistoryEntry entry)
@@ -610,6 +686,7 @@ public partial class MainViewModel : ObservableObject
 
         UpdateEpgForChannel(channel);
         RefreshHistoryLists();
+        IsViewingFullList = false;
     }
 
     #endregion
@@ -676,6 +753,9 @@ public partial class MainViewModel : ObservableObject
         OnPropertyChanged(nameof(HasLiveTvFavorites));
         OnPropertyChanged(nameof(HasMovieFavorites));
         OnPropertyChanged(nameof(HasSeriesFavorites));
+        OnPropertyChanged(nameof(LiveTvFavoritesPreview));
+        OnPropertyChanged(nameof(MovieFavoritesPreview));
+        OnPropertyChanged(nameof(SeriesFavoritesPreview));
     }
 
     #endregion
@@ -744,6 +824,9 @@ public partial class MainViewModel : ObservableObject
         OnPropertyChanged(nameof(HasRecentLiveTv));
         OnPropertyChanged(nameof(HasContinueWatchingMovies));
         OnPropertyChanged(nameof(HasContinueWatchingSeries));
+        OnPropertyChanged(nameof(RecentLiveTvPreview));
+        OnPropertyChanged(nameof(ContinueWatchingMoviesPreview));
+        OnPropertyChanged(nameof(ContinueWatchingSeriesPreview));
     }
 
     #endregion
@@ -872,6 +955,10 @@ public partial class MainViewModel : ObservableObject
 
         while (RecentUrls.Count > MaxRecentUrls)
             RecentUrls.RemoveAt(RecentUrls.Count - 1);
+
+        // WPF editable ComboBox clears Text when ItemsSource mutates,
+        // which wipes PlaylistUrl via the two-way binding. Restore it.
+        PlaylistUrl = url;
     }
 
     #endregion
