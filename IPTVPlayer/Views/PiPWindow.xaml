@@ -11,11 +11,23 @@
         ShowInTaskbar="False">
 
     <vlc:VideoView x:Name="PipVideoView">
-        <Grid Background="#01000000"
+        <Grid x:Name="PipOverlay"
+              Background="Black"
               MouseLeftButtonDown="Overlay_MouseLeftButtonDown"
               MouseEnter="Overlay_MouseEnter"
               MouseLeave="Overlay_MouseLeave"
               MouseWheel="Overlay_MouseWheel">
+
+            <!-- Loading indicator (shown while PiP media is starting) -->
+            <StackPanel x:Name="PipLoadingPanel"
+                        HorizontalAlignment="Center" VerticalAlignment="Center"
+                        Panel.ZIndex="5">
+                <ProgressBar IsIndeterminate="True" Height="3" Width="80"
+                             Foreground="White" Background="#33FFFFFF"
+                             BorderThickness="0" Margin="0,0,0,8"/>
+                <TextBlock Text="Cargando..." Foreground="#AAAAAA" FontSize="11"
+                           HorizontalAlignment="Center"/>
+            </StackPanel>
 
             <!-- Close button (top-right, appears on hover) -->
             <Button x:Name="CloseBtn"
@@ -51,6 +63,25 @@
                 </Border.Background>
                 <StackPanel Orientation="Horizontal" Margin="6,12,6,5"
                             HorizontalAlignment="Left">
+                    <Button x:Name="PlayPauseBtn" Click="PlayPauseBtn_Click"
+                            Cursor="Hand" Margin="0,0,2,0">
+                        <Button.Template>
+                            <ControlTemplate TargetType="Button">
+                                <Border x:Name="Bd" Background="Transparent"
+                                        CornerRadius="3" Padding="4,3">
+                                    <TextBlock x:Name="PlayPauseIcon" Text="&#xE769;"
+                                               FontFamily="Segoe MDL2 Assets" FontSize="13"
+                                               Foreground="White"
+                                               HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                </Border>
+                                <ControlTemplate.Triggers>
+                                    <Trigger Property="IsMouseOver" Value="True">
+                                        <Setter TargetName="Bd" Property="Background" Value="#33FFFFFF"/>
+                                    </Trigger>
+                                </ControlTemplate.Triggers>
+                            </ControlTemplate>
+                        </Button.Template>
+                    </Button>
                     <Button x:Name="MuteBtn" Click="MuteBtn_Click"
                             Cursor="Hand" Margin="0,0,2,0">
                         <Button.Template>

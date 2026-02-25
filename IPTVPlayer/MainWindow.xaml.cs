@@ -84,7 +84,6 @@ public partial class MainWindow : Window
             new DragCompletedEventHandler((_, _) => _vm.Player.EndSeek(FsSeekSlider.Value)));
 
         SyncTabUI();
-        UpdateInfoPanelVisibility();
 
         if (_settings.AutoLoadPlaylist && !string.IsNullOrWhiteSpace(_vm.PlaylistUrl))
             _vm.LoadPlaylistCommand.Execute(null);
@@ -200,7 +199,6 @@ public partial class MainWindow : Window
             && Enum.TryParse<ContentTab>(tabStr, out var tab))
         {
             _vm.ActiveTab = tab;
-            UpdateInfoPanelVisibility();
         }
     }
 
@@ -209,22 +207,6 @@ public partial class MainWindow : Window
         LiveTvTab.IsChecked = _vm.ActiveTab == ContentTab.LiveTV;
         MoviesTab.IsChecked = _vm.ActiveTab == ContentTab.Movies;
         SeriesTab.IsChecked = _vm.ActiveTab == ContentTab.Series;
-    }
-
-    private void UpdateInfoPanelVisibility()
-    {
-        if (_vm.IsLiveTvActive)
-        {
-            InfoSplitter.Visibility = Visibility.Visible;
-            InfoPanel.Visibility = Visibility.Visible;
-            InfoColumn.Width = new GridLength(220);
-        }
-        else
-        {
-            InfoSplitter.Visibility = Visibility.Collapsed;
-            InfoPanel.Visibility = Visibility.Collapsed;
-            InfoColumn.Width = new GridLength(0);
-        }
     }
 
     #endregion
@@ -345,9 +327,6 @@ public partial class MainWindow : Window
         LeftSidebar.Visibility = Visibility.Collapsed;
         SidebarSplitter.Visibility = Visibility.Collapsed;
         SidebarColumn.Width = new GridLength(0);
-        InfoSplitter.Visibility = Visibility.Collapsed;
-        InfoPanel.Visibility = Visibility.Collapsed;
-        InfoColumn.Width = new GridLength(0);
         HorizontalSplitter.Visibility = Visibility.Collapsed;
         BelowVideoRow.Height = new GridLength(0);
         BelowVideoRow.MinHeight = 0;
@@ -393,8 +372,6 @@ public partial class MainWindow : Window
         BelowVideoRow.MinHeight = 100;
         ControlsBar.Visibility = Visibility.Visible;
         StatusBar.Visibility = Visibility.Visible;
-
-        UpdateInfoPanelVisibility();
 
         FsIconExpand.Visibility = Visibility.Visible;
         FsIconRestore.Visibility = Visibility.Collapsed;

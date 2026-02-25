@@ -64,6 +64,15 @@ public partial class PiPWindow : Window, IDisposable
 
         PipVolumeSlider.Value = volume;
 
+        _mediaPlayer.Playing += (_, _) => Dispatcher.InvokeAsync(() =>
+        {
+            PipLoadingPanel.Visibility = Visibility.Collapsed;
+            PipOverlay.Background = new System.Windows.Media.SolidColorBrush(
+                System.Windows.Media.Color.FromArgb(1, 0, 0, 0));
+            UpdatePlayPauseIcon();
+        });
+        _mediaPlayer.Paused += (_, _) => Dispatcher.InvokeAsync(UpdatePlayPauseIcon);
+
         Loaded += (_, _) =>
         {
             PipVideoView.MediaPlayer = _mediaPlayer;
@@ -168,6 +177,29 @@ public partial class PiPWindow : Window, IDisposable
     {
         int newVolume = Math.Clamp(_mediaPlayer.Volume + (e.Delta > 0 ? 5 : -5), 0, 100);
         PipVolumeSlider.Value = newVolume;
+    }
+
+    private void PlayPauseBtn_Click(object sender, RoutedEventArgs e)
+    {
+        if (_mediaPlayer is null || _isDisposed) return;
+        
+        if (_mediaPlayer.IsPlaying)
+        {
+            _mediaPlayer.Pause();
+        }
+        else
+        {
+            _mediaPlayer.Play();
+        }
+    }
+
+    private void UpdatePlayPauseIcon()
+    {
+        var icon = (TextBlock)PlayPauseBtn.Template.FindName("PlayPauseIcon", PlayPauseBtn);
+        if (icon != null)
+        {
+            icon.Text = _mediaPlayer.IsPlaying ? "\uE769" : "\uE768"; // \uE769 is Pause, \uE768 is Play
+        }
     }
 
     private void MuteBtn_Click(object sender, RoutedEventArgs e)

@@ -206,6 +206,31 @@ public partial class MainViewModel : ObservableObject
         OnPropertyChanged(nameof(IsSeriesActive));
         SearchText = string.Empty;
         ApplyFilter();
+
+        if (IsViewingFullList)
+        {
+            var isFavorites = FullListTitle.Contains("Favorit");
+            var isHistory = FullListTitle.Contains("Reciente") || FullListTitle.Contains("Continuar");
+
+            if (isFavorites)
+            {
+                switch (value)
+                {
+                    case ContentTab.LiveTV: OpenFullList("LiveTvFavorites"); break;
+                    case ContentTab.Movies: OpenFullList("MovieFavorites"); break;
+                    case ContentTab.Series: OpenFullList("SeriesFavorites"); break;
+                }
+            }
+            else if (isHistory)
+            {
+                switch (value)
+                {
+                    case ContentTab.LiveTV: OpenFullList("RecentLiveTv"); break;
+                    case ContentTab.Movies: OpenFullList("ContinueWatchingMovies"); break;
+                    case ContentTab.Series: OpenFullList("ContinueWatchingSeries"); break;
+                }
+            }
+        }
     }
 
     partial void OnSearchTextChanged(string value) => ApplyFilter();
@@ -811,6 +836,23 @@ public partial class MainViewModel : ObservableObject
         if (_currentWatchEntry == null || durationMs <= 0) return;
         _currentWatchEntry.PositionMs = positionMs;
         _currentWatchEntry.DurationMs = durationMs;
+    }
+
+    [RelayCommand]
+    private void RemoveHistoryEntry(WatchHistoryEntry entry)
+    {
+        if (entry == null) return;
+        
+        var existing = _watchHistory.FirstOrDefault(h => h.Url.Equals(entry.Url, StringComparison.OrdinalIgnoreCase));
+        if (existing != null)
+        {
+            _watchHistory.Remove(existing);
+            if (_currentWatchEntry?.Url.Equals(entry.Url, StringComparison.OrdinalIgnoreCase) == true)
+            {
+                _currentWatchEntry = null;
+            }
+            RefreshHistoryLists();
+        }
     }
 
     private void RefreshHistoryLists()

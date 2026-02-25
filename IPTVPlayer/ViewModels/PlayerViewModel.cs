@@ -18,6 +18,7 @@ public partial class PlayerViewModel : ObservableObject, IDisposable
     private int _reconnectAttempts;
     private CancellationTokenSource? _reconnectCts;
     private long _lastKnownTimeMs;
+    private DateTime? _lastPauseTime;
 
     private const int MaxBackoffMs = 30_000;
 
@@ -66,13 +67,26 @@ public partial class PlayerViewModel : ObservableObject, IDisposable
     private string _statusText = "Listo";
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(ShowNoMediaPlaceholder))]
     private bool _hasMedia;
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(ShowNoMediaPlaceholder))]
     private bool _isReconnecting;
 
     [ObservableProperty]
     private string _reconnectStatus = string.Empty;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(ShowNoMediaPlaceholder))]
+    private bool _isMediaLoading;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(ShowNoMediaPlaceholder))]
+    private bool _isPipActive;
+
+    public bool ShowNoMediaPlaceholder =>
+        !HasMedia && !IsMediaLoading && !IsPipActive && !IsReconnecting;
 
     public MediaPlayer VlcMediaPlayer => _mediaPlayer;
 
@@ -99,6 +113,7 @@ public partial class PlayerViewModel : ObservableObject, IDisposable
         _mediaPlayer.Playing += (_, _) => Dispatch(() =>
         {
             IsPlaying = true;
+            IsMediaLoading = false;
             HasMedia = true;
             _mediaPlayer.Volume = Volume;
             _mediaPlayer.Mute = IsMuted;
@@ -110,18 +125,22 @@ public partial class PlayerViewModel : ObservableObject, IDisposable
                 _reconnectAttempts = 0;
             }
 
+            _lastPauseTime = null;
             StatusText = $"Reproduciendo: {CurrentChannelName}";
         });
 
         _mediaPlayer.Paused += (_, _) => Dispatch(() =>
         {
             IsPlaying = false;
+            _lastPauseTime = DateTime.UtcNow;
             StatusText = "Pausado";
         });
 
         _mediaPlayer.Stopped += (_, _) => Dispatch(() =>
         {
             IsPlaying = false;
+            if (!_isPiPTransition)
+                IsMediaLoading = false;
             if (!IsReconnecting && !_isPiPTransition)
             {
                 HasMedia = false;
@@ -156,6 +175,7 @@ public partial class PlayerViewModel : ObservableObject, IDisposable
         _mediaPlayer.EncounteredError += (_, _) => Dispatch(() =>
         {
             IsPlaying = false;
+            IsMediaLoading = false;
             if (!_userRequestedStop && !string.IsNullOrEmpty(CurrentUrl))
                 StartReconnect();
             else
@@ -273,6 +293,7 @@ public partial class PlayerViewModel : ObservableObject, IDisposable
         _reconnectAttempts = 0;
         _pendingAudioTrackId = -1;
         IsReconnecting = false;
+        IsMediaLoading = true;
         ReconnectStatus = string.Empty;
         _userRequestedStop = false;
         _lastKnownTimeMs = 0;
@@ -293,6 +314,7 @@ public partial class PlayerViewModel : ObservableObject, IDisposable
         _reconnectAttempts = 0;
         _pendingAudioTrackId = -1;
         IsReconnecting = false;
+        IsMediaLoading = true;
         ReconnectStatus = string.Empty;
         _userRequestedStop = false;
         _lastKnownTimeMs = startPositionMs;
@@ -314,16 +336,19 @@ public partial class PlayerViewModel : ObservableObject, IDisposable
     public void PrepareForPiP()
     {
         _isPiPTransition = true;
+        IsPipActive = true;
     }
 
     public async Task ResumeFromPiPAsync(long pipTimeMs, int audioTrackId = -1)
     {
         _pendingAudioTrackId = audioTrackId;
+        IsMediaLoading = true;
         StatusText = $"Cargando: {CurrentChannelName}...";
 
         await Task.Run(() => { try { _mediaPlayer.Stop(); } catch { } });
 
         _isPiPTransition = false;
+        IsPipActive = false;
         _userRequestedStop = false;
         _lastKnownTimeMs = 0;
 
@@ -341,9 +366,24 @@ public partial class PlayerViewModel : ObservableObject, IDisposable
     {
         if (!HasMedia) return;
         if (_mediaPlayer.IsPlaying)
+        {
             _mediaPlayer.Pause();
+        }
         else
-            _mediaPlayer.Play();
+        {
+            if (_lastPauseTime.HasValue && (DateTime.UtcNow - _lastPauseTime.Value).TotalMinutes > 5)
+            {
+                // Hard refresh after long idle
+                IsMediaLoading = true;
+                var posMs = _lastKnownTimeMs;
+                var channel = new Channel { Name = CurrentChannelName, Url = CurrentUrl };
+                PlayChannelFromPosition(channel, posMs);
+            }
+            else
+            {
+                _mediaPlayer.Play();
+            }
+        }
     }
 
     [RelayCommand]

@@ -1,4 +1,4 @@
-# IPTV Player
+# IPTV Player | Chucao
 
 Reproductor IPTV para Windows con soporte para listas M3U, streams en vivo y contenido on-demand.
 
@@ -45,7 +45,7 @@ Esto genera un ejecutable autocontenido en la carpeta `publish/` que no requiere
 ### Reproduccion
 
 - Soporte para streams en vivo (HLS, DASH, RTMP, RTSP) y contenido on-demand.
-- Controles: Play/Pause, Stop, barra de progreso (on-demand), volumen con mute.
+- Controles inmersivos (flotantes sobre el video): Play/Pause, Stop, barra de progreso (on-demand), volumen con mute.
 - Deteccion automatica de stream en vivo vs on-demand (indicador "EN VIVO" en la barra de estado).
 - Selector de pistas de audio y subtitulos con cambio en tiempo real.
 - **Reconexion automatica**: Si un stream se desconecta (error de red, fallo del servidor), el player reintenta automaticamente con backoff exponencial (hasta 10 intentos). Overlay visual muestra el progreso y permite cancelar.
@@ -80,9 +80,10 @@ Esto genera un ejecutable autocontenido en la carpeta `publish/` que no requiere
 
 ### Navegacion
 
-- Panel lateral con canales agrupados por categoria (TreeView expandible).
+- Panel lateral con canales agrupados por categoria (TreeView expandible) resuelto con ScrollBars consistentes.
 - Tabs de categorias para filtrado rapido.
-- Busqueda en tiempo real por nombre de canal.
+- Busqueda en tiempo real por nombre de canal con placeholders y estados responsivos.
+- Vista completa interactiva (grilla in-place flotando temporalmente sobre el video) para navegar listas largas (Favoritos, Historial).
 - Panel lateral redimensionable con GridSplitter.
 - Logos de canales cargados asincrona desde la URL `tvg-logo` de la playlist.
 

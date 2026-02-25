@@ -1,4 +1,4 @@
-# IPTV Player - Progreso y Roadmap
+# IPTV Player | Chucao - Progreso y Roadmap
 
 ## Estado actual: Layout multi-tab con UI profesional — en desarrollo activo
 
@@ -100,6 +100,13 @@ La aplicacion compila y ejecuta correctamente. Todas las funcionalidades core es
 - [x] Persistencia del tab activo en AppSettings
 - [x] Fullscreen actualizado para manejar todos los paneles del nuevo layout
 - [x] Estados vacios para cada seccion (sin favoritos, sin peliculas, sin series, etc.)
+
+### Refinamiento UI/UX
+- [x] Controles del reproductor inmersivos (flotantes en modo overlay sobre el video) solucionando de forma óptima el Airspace problem de WPF+LibVLC.
+- [x] Vista completa interactiva (grilla in-place sobre el reproductor) para ver el listado total de Favoritos e Historial sin recortarlos a 2 elementos.
+- [x] Soporte de scroll vertical pasivo (usando `DockPanel`) en los sidebars para navegar listas largas sin glitches gráficos de anidamiento.
+- [x] Labels y placeholders ("Buscar canal...") flotantes sobre todos los inputs de búsqueda de la aplicación.
+- [x] Lógica preventiva en ComboBox editable de URLs M3U para evitar pérdida accidental de la lista actual en reproducción (Two-Way Binding safety).
 
 ---
 

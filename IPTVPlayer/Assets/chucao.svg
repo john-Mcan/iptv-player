@@ -1,15 +1,75 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" fill="none">
-  <path d="M33 14L42 8L39 17L35 18Z" fill="#7B5B3A"/>
-  <ellipse cx="22" cy="25" rx="16" ry="15" fill="#7B5B3A"/>
-  <path d="M10 15C14 8 24 8 30 13C24 10 14 10 10 15Z" fill="#5A4228"/>
-  <path d="M28 14C36 18 38 28 34 36C38 30 38 18 32 12Z" fill="#9B7B5A"/>
-  <ellipse cx="18" cy="28" rx="9" ry="10" fill="#E8752A"/>
-  <circle cx="12" cy="34" r="1.2" fill="white" opacity="0.85"/>
-  <circle cx="16" cy="36" r="1.2" fill="white" opacity="0.85"/>
-  <circle cx="20" cy="36" r="1.2" fill="white" opacity="0.85"/>
-  <circle cx="24" cy="34" r="1.2" fill="white" opacity="0.85"/>
-  <circle cx="15" cy="17" r="3.2" fill="white"/>
-  <circle cx="15" cy="17" r="2" fill="#1A1A1E"/>
-  <circle cx="14.2" cy="16.2" r="0.7" fill="white"/>
-  <path d="M7 19L2 18L7 16.5Z" fill="#2D1F14"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" fill="none">
+  <defs>
+    <clipPath id="body-clip">
+      <path d="M 35 18 C 45 18, 60 22, 70 35 C 78 45, 75 60, 65 70 C 55 80, 35 80, 25 70 C 12 60, 10 45, 15 35 C 18 28, 20 28, 25 25 C 30 22, 32 18, 35 18 Z" />
+    </clipPath>
+  </defs>
+
+  <!-- Legs -->
+  <g fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <!-- Left Leg -->
+    <path d="M 32 75 L 25 92" />
+    <path d="M 25 92 L 15 95 M 25 92 L 18 88 M 25 92 L 32 94" />
+    <!-- Right Leg -->
+    <path d="M 52 75 L 45 90" />
+    <path d="M 45 90 L 35 93 M 45 90 L 38 86 M 45 90 L 52 92" />
+  </g>
+
+  <!-- Tail -->
+  <path d="M 65 55 C 75 45, 85 20, 85 20 C 90 25, 85 35, 85 35 C 88 40, 85 48, 85 48 C 87 53, 83 58, 83 58 C 85 62, 75 65, 65 65 Z" fill="#B2653B" stroke="white" stroke-width="2" stroke-linejoin="round" />
+  <g fill="none" stroke="white" stroke-width="2" stroke-linecap="round">
+    <path d="M 72 45 L 82 25 M 75 50 L 82 40 M 75 55 L 80 50" />
+  </g>
+
+  <!-- Base Body Fill -->
+  <path d="M 35 18 C 45 18, 60 22, 70 35 C 78 45, 75 60, 65 70 C 55 80, 35 80, 25 70 C 12 60, 10 45, 15 35 C 18 28, 20 28, 25 25 C 30 22, 32 18, 35 18 Z" fill="#B2653B" />
+
+  <!-- Inner Clipped Details -->
+  <g clip-path="url(#body-clip)">
+    <!-- Orange Breast -->
+    <path d="M 40 10 C 45 30, 45 45, 30 65 L 0 65 L 0 10 Z" fill="#F47B20" />
+
+    <!-- Grey Belly -->
+    <path d="M 0 55 C 25 50, 50 50, 80 55 L 80 95 L 0 95 Z" fill="#9D8D84" />
+
+    <!-- Belly White Details -->
+    <g fill="white">
+      <circle cx="28" cy="65" r="2.5" />
+      <circle cx="38" cy="62" r="2.5" />
+      <circle cx="48" cy="64" r="2.5" />
+      <circle cx="33" cy="72" r="2.5" />
+      <circle cx="43" cy="73" r="2.5" />
+      <circle cx="53" cy="69" r="2.5" />
+    </g>
+
+    <!-- Belly Dark Details -->
+    <g fill="#35170C">
+      <circle cx="35" cy="58" r="1.5" />
+      <circle cx="45" cy="57" r="1.5" />
+      <circle cx="26" cy="70" r="1.5" />
+      <circle cx="38" cy="68" r="1.5" />
+      <circle cx="48" cy="71" r="1.5" />
+      <circle cx="60" cy="64" r="1.5" />
+    </g>
+  </g>
+
+  <!-- Body Outline -->
+  <path d="M 35 18 C 45 18, 60 22, 70 35 C 78 45, 75 60, 65 70 C 55 80, 35 80, 25 70 C 12 60, 10 45, 15 35 C 18 28, 20 28, 25 25 C 30 22, 32 18, 35 18 Z" fill="none" stroke="white" stroke-width="2" stroke-linejoin="round" />
+
+  <!-- Wing -->
+  <path d="M 40 40 C 60 35, 75 45, 75 55 C 75 65, 60 70, 50 63 C 40 55, 35 45, 40 40 Z" fill="#B2653B" stroke="white" stroke-width="2" stroke-linejoin="round" />
+  <g fill="none" stroke="white" stroke-width="2" stroke-linecap="round">
+    <path d="M 62 45 L 72 50 M 58 50 L 70 55 M 54 55 L 65 60" />
+  </g>
+
+  <!-- Beak -->
+  <path d="M 17 28 L 3 32 L 15 36 Z" fill="#543222" stroke="white" stroke-width="2" stroke-linejoin="round" />
+  <path d="M 3 32 L 12 33" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" />
+
+  <!-- Eye -->
+  <circle cx="26" cy="28" r="4.5" fill="#35170C" />
+  <circle cx="24.5" cy="26.5" r="1.5" fill="white" />
+  <circle cx="27" cy="29" r="0.5" fill="white" />
+  <path d="M 23 23 Q 26 21.5, 30 22.5" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" />
+
 </svg>
