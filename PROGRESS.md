@@ -147,6 +147,8 @@ La aplicacion compila y ejecuta correctamente. Todas las funcionalidades core es
 - [x] Breadcrumb y boton Volver para navegar entre niveles
 - [x] Doble clic en episodio lo reproduce
 - [x] Agrupacion por nombre de serie derivado del prefijo antes del patron de episodio
+- [x] Auto-play del siguiente episodio al terminar el actual (preserva pista de audio y subtitulos, mantiene fullscreen)
+- [x] Boton overlay "Siguiente capitulo" aparece al 93% del progreso, permite saltar manualmente al siguiente episodio
 
 ### Configuracion (Settings)
 - [x] Boton gear (⚙) activo en header bar

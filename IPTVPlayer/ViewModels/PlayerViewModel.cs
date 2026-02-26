@@ -15,6 +15,7 @@ public partial class PlayerViewModel : ObservableObject, IDisposable
     private bool _userRequestedStop;
     private bool _isPiPTransition;
     private int _pendingAudioTrackId = -1;
+    private int _pendingSubtitleTrackId = -1;
     private int _reconnectAttempts;
     private CancellationTokenSource? _reconnectCts;
     private long _lastKnownTimeMs;
@@ -91,6 +92,12 @@ public partial class PlayerViewModel : ObservableObject, IDisposable
     public MediaPlayer VlcMediaPlayer => _mediaPlayer;
 
     public Action<long, long>? OnPositionUpdated { get; set; }
+    public Action? OnEndReached { get; set; }
+    public Func<bool>? HasNextEpisode { get; set; }
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(ShowNoMediaPlaceholder))]
+    private bool _showNextEpisodeButton;
 
     public PlayerViewModel()
     {
@@ -158,9 +165,29 @@ public partial class PlayerViewModel : ObservableObject, IDisposable
         {
             if (!_isSeeking)
                 Position = e.Position * 100.0;
-            _lastKnownTimeMs = _mediaPlayer.Time;
+                
+            var newTime = _mediaPlayer.Time;
+            // Protect against anomalies: sometimes LibVLC reports 0 or a wildly 
+            // smaller time just before/during a connection drop.
+            if (newTime > 0 && (newTime >= _lastKnownTimeMs || _lastKnownTimeMs - newTime < 5000))
+            {
+                _lastKnownTimeMs = newTime;
+            }
+            // First time setting it
+            else if (_lastKnownTimeMs == 0 && newTime > 0)
+            {
+                _lastKnownTimeMs = newTime;
+            }
+
             CurrentTime = TimeSpan.FromMilliseconds(_lastKnownTimeMs);
             OnPositionUpdated?.Invoke(_lastKnownTimeMs, (long)Duration.TotalMilliseconds);
+
+            // Show "Next Episode" button at 93% progress for series
+            if (!IsLive && Position >= 90.0 && !ShowNextEpisodeButton)
+            {
+                if (HasNextEpisode?.Invoke() == true)
+                    ShowNextEpisodeButton = true;
+            }
         });
 
         _mediaPlayer.LengthChanged += (_, e) => Dispatch(() =>
@@ -192,8 +219,14 @@ public partial class PlayerViewModel : ObservableObject, IDisposable
             else
             {
                 IsPlaying = false;
-                HasMedia = false;
-                StatusText = "Reproducción finalizada";
+                ShowNextEpisodeButton = false;
+                if (OnEndReached != null)
+                    OnEndReached.Invoke();
+                else
+                {
+                    HasMedia = false;
+                    StatusText = "Reproducción finalizada";
+                }
             }
         });
     }
@@ -283,7 +316,18 @@ public partial class PlayerViewModel : ObservableObject, IDisposable
         SubtitleTracks.Clear();
         foreach (var t in _mediaPlayer.SpuDescription ?? [])
             SubtitleTracks.Add(new TrackInfo { Id = t.Id, Name = t.Name ?? $"Subtítulo {t.Id}" });
-        SelectedSubtitleTrack = SubtitleTracks.FirstOrDefault(t => t.Id == currentSpuId);
+
+        if (_pendingSubtitleTrackId != -1 && SubtitleTracks.Any(t => t.Id == _pendingSubtitleTrackId))
+        {
+            var track = SubtitleTracks.First(t => t.Id == _pendingSubtitleTrackId);
+            SelectedSubtitleTrack = track;
+            _mediaPlayer.SetSpu(track.Id);
+            _pendingSubtitleTrackId = -1;
+        }
+        else
+        {
+            SelectedSubtitleTrack = SubtitleTracks.FirstOrDefault(t => t.Id == currentSpuId);
+        }
     }
 
     public void PlayChannel(Channel channel)
@@ -292,6 +336,8 @@ public partial class PlayerViewModel : ObservableObject, IDisposable
         _reconnectCts = null;
         _reconnectAttempts = 0;
         _pendingAudioTrackId = -1;
+        _pendingSubtitleTrackId = -1;
+        ShowNextEpisodeButton = false;
         IsReconnecting = false;
         IsMediaLoading = true;
         ReconnectStatus = string.Empty;
@@ -305,6 +351,38 @@ public partial class PlayerViewModel : ObservableObject, IDisposable
         using var media = new Media(_libVLC, channel.Url, FromType.FromLocation);
         media.AddOption(":network-caching=1000");
         _mediaPlayer.Play(media);
+    }
+
+    public void PlayNextChannel(Channel channel)
+    {
+        _reconnectCts?.Cancel();
+        _reconnectCts = null;
+        _reconnectAttempts = 0;
+        ShowNextEpisodeButton = false;
+        IsReconnecting = false;
+        IsMediaLoading = true;
+        ReconnectStatus = string.Empty;
+        _userRequestedStop = false;
+        _lastKnownTimeMs = 0;
+
+        // Preserve current audio/subtitle track selections
+        _pendingAudioTrackId = SelectedAudioTrack?.Id ?? -1;
+        _pendingSubtitleTrackId = SelectedSubtitleTrack?.Id ?? -1;
+
+        CurrentChannelName = channel.Name;
+        CurrentUrl = channel.Url;
+        StatusText = $"Cargando: {channel.Name}...";
+
+        Task.Run(() =>
+        {
+            try { _mediaPlayer.Stop(); } catch { }
+            Dispatch(() =>
+            {
+                using var media = new Media(_libVLC, channel.Url, FromType.FromLocation);
+                media.AddOption(":network-caching=1000");
+                _mediaPlayer.Play(media);
+            });
+        });
     }
 
     public void PlayChannelFromPosition(Channel channel, long startPositionMs)
@@ -371,7 +449,7 @@ public partial class PlayerViewModel : ObservableObject, IDisposable
         }
         else
         {
-            if (_lastPauseTime.HasValue && (DateTime.UtcNow - _lastPauseTime.Value).TotalMinutes > 5)
+            if (_lastPauseTime.HasValue && (DateTime.UtcNow - _lastPauseTime.Value).TotalMinutes > 10)
             {
                 // Hard refresh after long idle
                 IsMediaLoading = true;

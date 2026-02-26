@@ -156,7 +156,8 @@ public partial class MainWindow : Window
     {
         var dlg = new SettingsWindow(
             _settings.AutoLoadPlaylist,
-            _settings.MaxReconnectAttempts)
+            _settings.MaxReconnectAttempts,
+            _settings.HideAdultContent)
         { Owner = this };
 
         var saved = dlg.ShowDialog() == true;
@@ -167,6 +168,13 @@ public partial class MainWindow : Window
             _settings.AutoLoadPlaylist = dlg.SettingsAutoLoadPlaylist;
             _settings.MaxReconnectAttempts = dlg.SettingsMaxReconnectAttempts;
             _vm.Player.MaxReconnectAttempts = dlg.SettingsMaxReconnectAttempts;
+
+            if (_settings.HideAdultContent != dlg.SettingsHideAdultContent)
+            {
+                _settings.HideAdultContent = dlg.SettingsHideAdultContent;
+                _vm.HideAdultContent = dlg.SettingsHideAdultContent;
+            }
+            
             changed = true;
         }
 
@@ -213,22 +221,28 @@ public partial class MainWindow : Window
 
     #region Channel / Content Selection
 
-    private void ChannelTree_MouseDoubleClick(object sender, MouseButtonEventArgs e)
+    private void ChannelTree_SelectedItemChanged(object sender, RoutedPropertyChangedEventArgs<object> e)
     {
-        if (ChannelTree.SelectedItem is Channel channel)
+        if (e.NewValue is Channel channel)
             _vm.PlayChannel(channel);
     }
 
-    private void ContentGrid_MouseDoubleClick(object sender, MouseButtonEventArgs e)
+    private void ContentGrid_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
         if (sender is ListBox lb && lb.SelectedItem is Channel channel)
+        {
             _vm.PlayChannel(channel);
+            lb.SelectedItem = null; // allow re-selecting same item
+        }
     }
 
-    private void SeriesGrid_MouseDoubleClick(object sender, MouseButtonEventArgs e)
+    private void SeriesGrid_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
         if (sender is ListBox lb && lb.SelectedItem is Channel channel)
+        {
             _vm.HandleSeriesItemClick(channel);
+            lb.SelectedItem = null; // allow re-selecting same item
+        }
     }
 
     private void FavoriteItem_Click(object sender, MouseButtonEventArgs e)

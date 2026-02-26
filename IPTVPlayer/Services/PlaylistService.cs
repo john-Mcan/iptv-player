@@ -63,11 +63,36 @@ public partial class PlaylistService
         return GroupByCategory(channels);
     }
 
+    // Keywords that indicate live 24/7 streams (should always be LiveTV)
+    private static readonly string[] LiveStreamIndicators =
+        ["24/7", "24hrs", "24 horas", "24horas", "24 hrs"];
+
     private static CategoryType DetectCategory(Channel channel)
     {
         var groupLower = channel.GroupTitle.ToLowerInvariant();
         var urlLower = channel.Url.ToLowerInvariant();
+        var nameLower = channel.Name.ToLowerInvariant();
 
+        // 1. Channels with 24/7 indicators in the name are always LiveTV
+        foreach (var indicator in LiveStreamIndicators)
+        {
+            if (nameLower.Contains(indicator, StringComparison.Ordinal))
+                return CategoryType.LiveTV;
+        }
+
+        // 2. Check if group title matches keywords from multiple categories
+        //    e.g. "cine y series" matches both Movies ("cine") and Series ("series")
+        //    → these are live TV channels broadcasting mixed content
+        var seriesKeywords = CategoryRules[0].GroupKeywords;
+        var movieKeywords = CategoryRules[1].GroupKeywords;
+
+        bool matchesSeries = seriesKeywords.Any(kw => groupLower.Contains(kw, StringComparison.Ordinal));
+        bool matchesMovies = movieKeywords.Any(kw => groupLower.Contains(kw, StringComparison.Ordinal));
+
+        if (matchesSeries && matchesMovies)
+            return CategoryType.LiveTV;
+
+        // 3. Normal single-category detection
         foreach (var rule in CategoryRules)
         {
             foreach (var keyword in rule.GroupKeywords)

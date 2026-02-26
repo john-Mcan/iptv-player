@@ -17,4 +17,5 @@ public class AppSettings
     public List<string> FavoriteSeriesNames { get; set; } = new();
     public List<WatchHistoryEntry> WatchHistory { get; set; } = new();
     public int MaxReconnectAttempts { get; set; } = 10;
+    public bool HideAdultContent { get; set; } = false;
 }

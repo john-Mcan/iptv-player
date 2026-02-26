@@ -262,7 +262,7 @@
                         <!-- Channel TreeView -->
                         <TreeView x:Name="ChannelTree" Grid.Row="3" Margin="0,2,0,0"
                                   ItemsSource="{Binding FilteredLiveTvGroups}"
-                                  MouseDoubleClick="ChannelTree_MouseDoubleClick">
+                                  SelectedItemChanged="ChannelTree_SelectedItemChanged">
                             <TreeView.ItemTemplate>
                                 <HierarchicalDataTemplate ItemsSource="{Binding Channels}">
                                     <StackPanel Orientation="Horizontal" Margin="2,2">
@@ -828,6 +828,33 @@
                                 </StackPanel>
                             </Border>
 
+                            <!-- Next Episode overlay button -->
+                            <Border HorizontalAlignment="Right" VerticalAlignment="Bottom"
+                                    Margin="0,0,24,100" CornerRadius="6" Cursor="Hand"
+                                    Visibility="{Binding Player.ShowNextEpisodeButton, Converter={StaticResource BoolToVis}}">
+                                <Border.InputBindings>
+                                    <MouseBinding MouseAction="LeftClick"
+                                                  Command="{Binding SkipToNextEpisodeCommand}"/>
+                                </Border.InputBindings>
+                                <Border.Style>
+                                    <Style TargetType="Border">
+                                        <Setter Property="Background" Value="#DD1A1A1E"/>
+                                        <Style.Triggers>
+                                            <Trigger Property="IsMouseOver" Value="True">
+                                                <Setter Property="Background" Value="#EE2A2A30"/>
+                                            </Trigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Border.Style>
+                                <StackPanel Orientation="Horizontal" Margin="14,8">
+                                    <TextBlock Text="Siguiente capítulo" Foreground="White"
+                                               FontSize="13" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                                    <TextBlock Text="&#xE893;" FontFamily="Segoe MDL2 Assets"
+                                               FontSize="16" Foreground="{StaticResource AccentBrush}"
+                                               VerticalAlignment="Center"/>
+                                </StackPanel>
+                            </Border>
+
                             <!-- Fullscreen overlay controls -->
                             <Border x:Name="FullscreenOverlay" VerticalAlignment="Bottom"
                                     Visibility="Collapsed" Opacity="0">
@@ -940,7 +967,23 @@
                                                     Command="{Binding CloseFullListCommand}" Padding="8" ToolTip="Cerrar"/>
                                         </Grid>
                                     </Border>
-                                    <ListBox Grid.Row="1" ItemsSource="{Binding ActiveFullList}" Background="Transparent" BorderThickness="0" Margin="8">
+                                    <Grid Grid.Row="1" Margin="8">
+                                        <!-- Empty state text -->
+                                        <TextBlock Text="La lista está vacía" HorizontalAlignment="Center" VerticalAlignment="Center"
+                                                   FontSize="18" Foreground="#808088">
+                                            <TextBlock.Style>
+                                                <Style TargetType="TextBlock">
+                                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding ActiveFullList.Count}" Value="0">
+                                                            <Setter Property="Visibility" Value="Visible"/>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </TextBlock.Style>
+                                        </TextBlock>
+                                        
+                                        <ListBox ItemsSource="{Binding ActiveFullList}" Background="Transparent" BorderThickness="0">
                                         <ListBox.ItemsPanel>
                                             <ItemsPanelTemplate>
                                                 <vwp:VirtualizingWrapPanel/>
@@ -969,7 +1012,7 @@
                                                                 <Border.InputBindings>
                                                                     <MouseBinding MouseAction="LeftClick" Command="{Binding DataContext.PlayFromFullListCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="{Binding}" />
                                                                 </Border.InputBindings>
-                                                                <Grid Height="220">
+                                                                <Grid Height="220" ClipToBounds="True">
                                                                     <Image Source="{Binding LogoUrl, Converter={StaticResource ImgLoad}, ConverterParameter=220, IsAsync=True}" Stretch="UniformToFill" RenderOptions.BitmapScalingMode="HighQuality"/>
                                                                     <Border VerticalAlignment="Bottom" Background="#B2000000" Padding="8,6">
                                                                         <TextBlock Text="{Binding Name}" Foreground="White" FontSize="12" TextWrapping="Wrap" MaxHeight="36" TextTrimming="CharacterEllipsis"/>
@@ -983,7 +1026,7 @@
                                                                 <Border.InputBindings>
                                                                     <MouseBinding MouseAction="LeftClick" Command="{Binding DataContext.PlayFromFullListCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="{Binding}" />
                                                                 </Border.InputBindings>
-                                                                <Grid Height="220">
+                                                                <Grid Height="220" ClipToBounds="True">
                                                                     <Image Source="{Binding LogoUrl, Converter={StaticResource ImgLoad}, ConverterParameter=220, IsAsync=True}" Stretch="UniformToFill" RenderOptions.BitmapScalingMode="HighQuality"/>
                                                                     <Border VerticalAlignment="Bottom" Background="#B2000000" Padding="8,6">
                                                                         <TextBlock Text="{Binding Name}" Foreground="White" FontSize="12" TextWrapping="Wrap" MaxHeight="36" TextTrimming="CharacterEllipsis"/>
@@ -996,7 +1039,8 @@
                                                 </ContentControl>
                                             </DataTemplate>
                                         </ListBox.ItemTemplate>
-                                    </ListBox>
+                                        </ListBox>
+                                    </Grid>
                                 </Grid>
                             </Border>
 
@@ -1217,21 +1261,34 @@
                         <RowDefinition Height="*"/>
                     </Grid.RowDefinitions>
 
-                    <!-- Search -->
+                    <!-- Search + Sort -->
                     <Grid Grid.Row="0" Margin="6,4,6,4">
-                        <TextBox Style="{StaticResource SearchTextBoxStyle}" Tag="Buscar película..."
-                                 Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"
-                                 Padding="28,6,8,6" VerticalContentAlignment="Center"/>
-                        <TextBlock Text="&#xE721;" FontFamily="Segoe MDL2 Assets" FontSize="13"
-                                   Foreground="{StaticResource TextDimBrush}"
-                                   VerticalAlignment="Center" Margin="9,0,0,0"
-                                   IsHitTestVisible="False"/>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <Grid>
+                            <TextBox Style="{StaticResource SearchTextBoxStyle}" Tag="Buscar película..."
+                                     Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"
+                                     Padding="28,6,8,6" VerticalContentAlignment="Center"/>
+                            <TextBlock Text="&#xE721;" FontFamily="Segoe MDL2 Assets" FontSize="13"
+                                       Foreground="{StaticResource TextDimBrush}"
+                                       VerticalAlignment="Center" Margin="9,0,0,0"
+                                       IsHitTestVisible="False"/>
+                        </Grid>
+                        <ComboBox Grid.Column="1" Style="{StaticResource DarkCombo}"
+                                  SelectedIndex="{Binding SelectedSortOption}"
+                                  Margin="6,0,0,0" Width="130" VerticalAlignment="Center">
+                            <ComboBoxItem Content="Más recientes" />
+                            <ComboBoxItem Content="A - Z" />
+                            <ComboBoxItem Content="Z - A" />
+                        </ComboBox>
                     </Grid>
 
                     <!-- Movie grid -->
                     <ListBox x:Name="MovieGrid" Grid.Row="1"
                              ItemsSource="{Binding FilteredMovies}"
-                             MouseDoubleClick="ContentGrid_MouseDoubleClick"
+                             SelectionChanged="ContentGrid_SelectionChanged"
                              ScrollViewer.HorizontalScrollBarVisibility="Disabled"
                              ScrollViewer.CanContentScroll="True"
                              VirtualizingStackPanel.IsVirtualizing="True"
@@ -1268,50 +1325,53 @@
                                             </Style.Triggers>
                                         </Style>
                                     </Border.Style>
-                                    <StackPanel>
-                                        <Grid Height="180">
-                                            <TextBlock Text="&#xE8B2;" FontFamily="Segoe MDL2 Assets"
-                                                       FontSize="28" Foreground="#303035"
-                                                       HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                                            <Image Source="{Binding LogoUrl, Converter={StaticResource ImgLoad}, ConverterParameter=200, IsAsync=True}"
-                                                   Stretch="UniformToFill" VerticalAlignment="Center"
-                                                   RenderOptions.BitmapScalingMode="HighQuality"/>
-                                            <!-- Favorite star overlay -->
-                                            <Button HorizontalAlignment="Right" VerticalAlignment="Top" Margin="4"
-                                                    Command="{Binding DataContext.ToggleFavoriteCommand, RelativeSource={RelativeSource AncestorType=Window}}"
-                                                    CommandParameter="{Binding}">
-                                                <Button.Style>
-                                                    <Style TargetType="Button" BasedOn="{StaticResource IconBtn}">
-                                                        <Setter Property="Padding" Value="3"/>
-                                                        <Setter Property="MinWidth" Value="0"/>
-                                                        <Setter Property="MinHeight" Value="0"/>
-                                                        <Setter Property="Background" Value="#80000000"/>
-                                                        <Setter Property="Visibility" Value="Hidden"/>
-                                                        <Style.Triggers>
-                                                            <DataTrigger Binding="{Binding IsFavorite}" Value="True">
-                                                                <Setter Property="Visibility" Value="Visible"/>
-                                                            </DataTrigger>
-                                                            <DataTrigger Binding="{Binding IsMouseOver, RelativeSource={RelativeSource AncestorType=Border}}" Value="True">
-                                                                <Setter Property="Visibility" Value="Visible"/>
-                                                            </DataTrigger>
-                                                        </Style.Triggers>
-                                                    </Style>
-                                                </Button.Style>
-                                                <Grid>
-                                                    <TextBlock Text="&#xE734;" FontFamily="Segoe MDL2 Assets" FontSize="13"
-                                                               Foreground="#AAAAAA"
-                                                               Visibility="{Binding IsFavorite, Converter={StaticResource InvBoolToVis}}"/>
-                                                    <TextBlock Text="&#xE735;" FontFamily="Segoe MDL2 Assets" FontSize="13"
-                                                               Foreground="{StaticResource AccentBrush}"
-                                                               Visibility="{Binding IsFavorite, Converter={StaticResource BoolToVis}}"/>
-                                                </Grid>
-                                            </Button>
-                                        </Grid>
-                                        <TextBlock Text="{Binding Name}" FontSize="11"
-                                                   Foreground="{StaticResource TextBrush}"
-                                                   TextTrimming="CharacterEllipsis" TextWrapping="Wrap"
-                                                   MaxHeight="34" Margin="6,4,6,6"/>
-                                    </StackPanel>
+                                    <Grid Height="220" ClipToBounds="True">
+                                        <!-- Full background image -->
+                                        <TextBlock Text="&#xE8B2;" FontFamily="Segoe MDL2 Assets"
+                                                   FontSize="36" Foreground="#606068"
+                                                   HorizontalAlignment="Center" VerticalAlignment="Center" Panel.ZIndex="-1"/>
+                                        <Image Source="{Binding LogoUrl, Converter={StaticResource ImgLoad}, ConverterParameter=200, IsAsync=True}"
+                                               Stretch="UniformToFill"
+                                               RenderOptions.BitmapScalingMode="HighQuality"/>
+
+                                        <!-- Favorite star overlay -->
+                                        <Button HorizontalAlignment="Right" VerticalAlignment="Top" Margin="4"
+                                                Command="{Binding DataContext.ToggleFavoriteCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                CommandParameter="{Binding}">
+                                            <Button.Style>
+                                                <Style TargetType="Button" BasedOn="{StaticResource IconBtn}">
+                                                    <Setter Property="Padding" Value="3"/>
+                                                    <Setter Property="MinWidth" Value="0"/>
+                                                    <Setter Property="MinHeight" Value="0"/>
+                                                    <Setter Property="Background" Value="#80000000"/>
+                                                    <Setter Property="Visibility" Value="Hidden"/>
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding IsFavorite}" Value="True">
+                                                            <Setter Property="Visibility" Value="Visible"/>
+                                                        </DataTrigger>
+                                                        <DataTrigger Binding="{Binding IsMouseOver, RelativeSource={RelativeSource AncestorType=Border}}" Value="True">
+                                                            <Setter Property="Visibility" Value="Visible"/>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </Button.Style>
+                                            <Grid>
+                                                <TextBlock Text="&#xE734;" FontFamily="Segoe MDL2 Assets" FontSize="13"
+                                                           Foreground="#AAAAAA"
+                                                           Visibility="{Binding IsFavorite, Converter={StaticResource InvBoolToVis}}"/>
+                                                <TextBlock Text="&#xE735;" FontFamily="Segoe MDL2 Assets" FontSize="13"
+                                                           Foreground="{StaticResource AccentBrush}"
+                                                           Visibility="{Binding IsFavorite, Converter={StaticResource BoolToVis}}"/>
+                                            </Grid>
+                                        </Button>
+
+                                        <!-- Text overlay at the bottom that grows up -->
+                                        <Border VerticalAlignment="Bottom" Background="#D916161A" Padding="8,8,8,6">
+                                            <TextBlock Text="{Binding Name}" FontSize="12"
+                                                       Foreground="{StaticResource TextBrush}"
+                                                       TextWrapping="Wrap"/>
+                                        </Border>
+                                    </Grid>
                                 </Border>
                             </DataTemplate>
                         </ListBox.ItemTemplate>
@@ -1366,21 +1426,34 @@
                         </StackPanel>
                     </Border>
 
-                    <!-- Search -->
+                    <!-- Search + Sort -->
                     <Grid Grid.Row="1" Margin="6,4,6,4">
-                        <TextBox Style="{StaticResource SearchTextBoxStyle}" Tag="Buscar serie..."
-                                 Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"
-                                 Padding="28,6,8,6" VerticalContentAlignment="Center"/>
-                        <TextBlock Text="&#xE721;" FontFamily="Segoe MDL2 Assets" FontSize="13"
-                                   Foreground="{StaticResource TextDimBrush}"
-                                   VerticalAlignment="Center" Margin="9,0,0,0"
-                                   IsHitTestVisible="False"/>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <Grid>
+                            <TextBox Style="{StaticResource SearchTextBoxStyle}" Tag="Buscar serie..."
+                                     Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"
+                                     Padding="28,6,8,6" VerticalContentAlignment="Center"/>
+                            <TextBlock Text="&#xE721;" FontFamily="Segoe MDL2 Assets" FontSize="13"
+                                       Foreground="{StaticResource TextDimBrush}"
+                                       VerticalAlignment="Center" Margin="9,0,0,0"
+                                       IsHitTestVisible="False"/>
+                        </Grid>
+                        <ComboBox Grid.Column="1" Style="{StaticResource DarkCombo}"
+                                  SelectedIndex="{Binding SelectedSortOption}"
+                                  Margin="6,0,0,0" Width="130" VerticalAlignment="Center">
+                            <ComboBoxItem Content="Más recientes" />
+                            <ComboBoxItem Content="A - Z" />
+                            <ComboBoxItem Content="Z - A" />
+                        </ComboBox>
                     </Grid>
 
                     <!-- Series grid -->
                     <ListBox x:Name="SeriesGrid" Grid.Row="2"
                              ItemsSource="{Binding FilteredSeries}"
-                             MouseDoubleClick="SeriesGrid_MouseDoubleClick"
+                             SelectionChanged="SeriesGrid_SelectionChanged"
                              ScrollViewer.HorizontalScrollBarVisibility="Disabled"
                              ScrollViewer.CanContentScroll="True"
                              VirtualizingStackPanel.IsVirtualizing="True"
@@ -1417,53 +1490,58 @@
                                             </Style.Triggers>
                                         </Style>
                                     </Border.Style>
-                                    <StackPanel>
-                                        <Grid Height="180">
-                                            <TextBlock Text="&#xE786;" FontFamily="Segoe MDL2 Assets"
-                                                       FontSize="28" Foreground="#303035"
-                                                       HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                                            <Image Source="{Binding LogoUrl, Converter={StaticResource ImgLoad}, ConverterParameter=200, IsAsync=True}"
-                                                   Stretch="UniformToFill" VerticalAlignment="Center"
-                                                   RenderOptions.BitmapScalingMode="HighQuality"/>
-                                            <!-- Favorite star overlay -->
-                                            <Button HorizontalAlignment="Right" VerticalAlignment="Top" Margin="4"
-                                                    Command="{Binding DataContext.ToggleFavoriteCommand, RelativeSource={RelativeSource AncestorType=Window}}"
-                                                    CommandParameter="{Binding}">
-                                                <Button.Style>
-                                                    <Style TargetType="Button" BasedOn="{StaticResource IconBtn}">
-                                                        <Setter Property="Padding" Value="3"/>
-                                                        <Setter Property="MinWidth" Value="0"/>
-                                                        <Setter Property="MinHeight" Value="0"/>
-                                                        <Setter Property="Background" Value="#80000000"/>
-                                                        <Setter Property="Visibility" Value="Hidden"/>
-                                                        <Style.Triggers>
-                                                            <DataTrigger Binding="{Binding IsFavorite}" Value="True">
-                                                                <Setter Property="Visibility" Value="Visible"/>
-                                                            </DataTrigger>
-                                                            <DataTrigger Binding="{Binding IsMouseOver, RelativeSource={RelativeSource AncestorType=Border}}" Value="True">
-                                                                <Setter Property="Visibility" Value="Visible"/>
-                                                            </DataTrigger>
-                                                        </Style.Triggers>
-                                                    </Style>
-                                                </Button.Style>
-                                                <Grid>
-                                                    <TextBlock Text="&#xE734;" FontFamily="Segoe MDL2 Assets" FontSize="13"
-                                                               Foreground="#AAAAAA"
-                                                               Visibility="{Binding IsFavorite, Converter={StaticResource InvBoolToVis}}"/>
-                                                    <TextBlock Text="&#xE735;" FontFamily="Segoe MDL2 Assets" FontSize="13"
-                                                               Foreground="{StaticResource AccentBrush}"
-                                                               Visibility="{Binding IsFavorite, Converter={StaticResource BoolToVis}}"/>
-                                                </Grid>
-                                            </Button>
-                                        </Grid>
-                                        <TextBlock Text="{Binding Name}" FontSize="11"
-                                                   Foreground="{StaticResource TextBrush}"
-                                                   TextTrimming="CharacterEllipsis" TextWrapping="Wrap"
-                                                   MaxHeight="34" Margin="6,4,6,2"/>
-                                        <TextBlock Text="{Binding GroupTitle}" FontSize="10"
-                                                   Foreground="{StaticResource TextDimBrush}"
-                                                   TextTrimming="CharacterEllipsis" Margin="6,0,6,6"/>
-                                    </StackPanel>
+                                    <Grid Height="220" ClipToBounds="True">
+                                        <!-- Full background image -->
+                                        <TextBlock Text="&#xE786;" FontFamily="Segoe MDL2 Assets"
+                                                   FontSize="36" Foreground="#606068"
+                                                   HorizontalAlignment="Center" VerticalAlignment="Center" Panel.ZIndex="-1"/>
+                                        <Image Source="{Binding LogoUrl, Converter={StaticResource ImgLoad}, ConverterParameter=200, IsAsync=True}"
+                                               Stretch="UniformToFill"
+                                               RenderOptions.BitmapScalingMode="HighQuality"/>
+
+                                        <!-- Favorite star overlay -->
+                                        <Button HorizontalAlignment="Right" VerticalAlignment="Top" Margin="4"
+                                                Command="{Binding DataContext.ToggleFavoriteCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                CommandParameter="{Binding}">
+                                            <Button.Style>
+                                                <Style TargetType="Button" BasedOn="{StaticResource IconBtn}">
+                                                    <Setter Property="Padding" Value="3"/>
+                                                    <Setter Property="MinWidth" Value="0"/>
+                                                    <Setter Property="MinHeight" Value="0"/>
+                                                    <Setter Property="Background" Value="#80000000"/>
+                                                    <Setter Property="Visibility" Value="Hidden"/>
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding IsFavorite}" Value="True">
+                                                            <Setter Property="Visibility" Value="Visible"/>
+                                                        </DataTrigger>
+                                                        <DataTrigger Binding="{Binding IsMouseOver, RelativeSource={RelativeSource AncestorType=Border}}" Value="True">
+                                                            <Setter Property="Visibility" Value="Visible"/>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </Button.Style>
+                                            <Grid>
+                                                <TextBlock Text="&#xE734;" FontFamily="Segoe MDL2 Assets" FontSize="13"
+                                                           Foreground="#AAAAAA"
+                                                           Visibility="{Binding IsFavorite, Converter={StaticResource InvBoolToVis}}"/>
+                                                <TextBlock Text="&#xE735;" FontFamily="Segoe MDL2 Assets" FontSize="13"
+                                                           Foreground="{StaticResource AccentBrush}"
+                                                           Visibility="{Binding IsFavorite, Converter={StaticResource BoolToVis}}"/>
+                                            </Grid>
+                                        </Button>
+
+                                        <!-- Text overlay at the bottom that grows up -->
+                                        <Border VerticalAlignment="Bottom" Background="#D916161A" Padding="8,8,8,6">
+                                            <StackPanel>
+                                                <TextBlock Text="{Binding Name}" FontSize="12"
+                                                           Foreground="{StaticResource TextBrush}"
+                                                           TextWrapping="Wrap" Margin="0,0,0,2"/>
+                                                <TextBlock Text="{Binding GroupTitle}" FontSize="10"
+                                                           Foreground="{StaticResource TextDimBrush}"
+                                                           TextWrapping="Wrap"/>
+                                            </StackPanel>
+                                        </Border>
+                                    </Grid>
                                 </Border>
                             </DataTemplate>
                         </ListBox.ItemTemplate>

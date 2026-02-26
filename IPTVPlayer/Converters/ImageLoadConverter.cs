@@ -22,7 +22,7 @@ public class ImageLoadConverter : IValueConverter
             bitmap.UriSource = new Uri(url, UriKind.Absolute);
             bitmap.DecodePixelWidth = decodeWidth;
             bitmap.CreateOptions = BitmapCreateOptions.IgnoreColorProfile;
-            bitmap.CacheOption = BitmapCacheOption.OnDemand;
+            bitmap.CacheOption = BitmapCacheOption.OnLoad;
             bitmap.EndInit();
 
             return bitmap;

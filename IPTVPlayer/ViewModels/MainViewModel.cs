@@ -46,6 +46,22 @@ public partial class MainViewModel : ObservableObject
     [ObservableProperty]
     private Channel? _selectedChannel;
 
+    [ObservableProperty]
+    private bool _hideAdultContent;
+
+    partial void OnHideAdultContentChanged(bool value)
+    {
+        if (_fullLiveTvCategory != null || _fullMoviesCategory != null || _fullSeriesCategory != null)
+        {
+            ApplyCategoryFilters();
+        }
+    }
+
+    // Original complete categories
+    private ContentCategory? _fullLiveTvCategory;
+    private ContentCategory? _fullMoviesCategory;
+    private ContentCategory? _fullSeriesCategory;
+
     // Live TV
     private ContentCategory? _liveTvCategory;
 
@@ -60,6 +76,9 @@ public partial class MainViewModel : ObservableObject
 
     [ObservableProperty]
     private ChannelGroup? _selectedMovieCategory;
+
+    [ObservableProperty]
+    private int _selectedSortOption;
 
     [ObservableProperty]
     private ObservableCollection<Channel> _filteredMovies = new();
@@ -197,6 +216,8 @@ public partial class MainViewModel : ObservableObject
     public MainViewModel()
     {
         Player.OnPositionUpdated = UpdateWatchPosition;
+        Player.OnEndReached = HandleEndReached;
+        Player.HasNextEpisode = () => GetNextEpisode() != null;
     }
 
     partial void OnActiveTabChanged(ContentTab value)
@@ -236,6 +257,7 @@ public partial class MainViewModel : ObservableObject
     partial void OnSearchTextChanged(string value) => ApplyFilter();
     partial void OnSelectedMovieCategoryChanged(ChannelGroup? value) => ApplyMovieFilter();
     partial void OnSelectedSeriesCategoryChanged(ChannelGroup? value) => RebuildSeriesNavigation();
+    partial void OnSelectedSortOptionChanged(int value) => ApplyFilter();
 
     partial void OnSeriesNavLevelChanged(SeriesNavLevel value)
     {
@@ -257,45 +279,11 @@ public partial class MainViewModel : ObservableObject
 
             var categories = await _playlistService.LoadPlaylistAsync(PlaylistUrl);
 
-            _liveTvCategory = categories.FirstOrDefault(c => c.Type == CategoryType.LiveTV);
-            _moviesCategory = categories.FirstOrDefault(c => c.Type == CategoryType.Movies);
-            _seriesCategory = categories.FirstOrDefault(c => c.Type == CategoryType.Series);
+            _fullLiveTvCategory = categories.FirstOrDefault(c => c.Type == CategoryType.LiveTV);
+            _fullMoviesCategory = categories.FirstOrDefault(c => c.Type == CategoryType.Movies);
+            _fullSeriesCategory = categories.FirstOrDefault(c => c.Type == CategoryType.Series);
 
-            MarkFavoriteChannels();
-
-            var movieGroups = (_moviesCategory?.Groups ?? []).ToList();
-            if (movieGroups.Count > 1)
-            {
-                movieGroups.Insert(0, new ChannelGroup
-                {
-                    Name = "Todas",
-                    Channels = new ObservableCollection<Channel>(movieGroups.SelectMany(g => g.Channels))
-                });
-            }
-            MovieCategoryList = new ObservableCollection<ChannelGroup>(movieGroups);
-
-            var seriesGroups = (_seriesCategory?.Groups ?? []).ToList();
-            if (seriesGroups.Count > 1)
-            {
-                seriesGroups.Insert(0, new ChannelGroup
-                {
-                    Name = "Todas",
-                    Channels = new ObservableCollection<Channel>(seriesGroups.SelectMany(g => g.Channels))
-                });
-            }
-            SeriesCategoryList = new ObservableCollection<ChannelGroup>(seriesGroups);
-
-            SelectedMovieCategory = MovieCategoryList.FirstOrDefault();
-            SelectedSeriesCategory = SeriesCategoryList.FirstOrDefault();
-
-            OnPropertyChanged(nameof(LiveTvChannelCount));
-            OnPropertyChanged(nameof(MovieCount));
-            OnPropertyChanged(nameof(SeriesCount));
-            OnPropertyChanged(nameof(TotalChannels));
-
-            ApplyFilter();
-            RefreshFavoriteLists();
-            RefreshHistoryLists();
+            ApplyCategoryFilters();
 
             Player.StatusText = $"Playlist cargada — {TotalChannels} canales";
             AddToRecentUrls(PlaylistUrl);
@@ -318,6 +306,94 @@ public partial class MainViewModel : ObservableObject
         {
             IsLoading = false;
         }
+    }
+
+    private static readonly string[] AdultKeywords = ["xxx", "adult", "adultos", "+18", "18+", "porn", "erotic", "erótic", "hentai"];
+
+    private ContentCategory? FilterCategoryAdultContent(ContentCategory? source)
+    {
+        if (source == null) return null;
+        if (!HideAdultContent) return source;
+
+        var cleanGroups = source.Groups.Select(g => 
+        {
+            var isAdultGroup = AdultKeywords.Any(kw => g.Name.Contains(kw, StringComparison.OrdinalIgnoreCase));
+            if (isAdultGroup) return null;
+
+            var cleanChannels = g.Channels.Where(c => 
+                !AdultKeywords.Any(kw => c.Name.Contains(kw, StringComparison.OrdinalIgnoreCase) || 
+                                         c.GroupTitle.Contains(kw, StringComparison.OrdinalIgnoreCase))
+            ).ToList();
+
+            if (cleanChannels.Count == 0) return null;
+
+            return new ChannelGroup
+            {
+                Name = g.Name,
+                Channels = new ObservableCollection<Channel>(cleanChannels)
+            };
+        }).Where(g => g != null).Cast<ChannelGroup>().ToList();
+
+        return new ContentCategory
+        {
+            Name = source.Name,
+            Type = source.Type,
+            Icon = source.Icon,
+            Groups = new ObservableCollection<ChannelGroup>(cleanGroups)
+        };
+    }
+
+    private void ApplyCategoryFilters()
+    {
+        _liveTvCategory = FilterCategoryAdultContent(_fullLiveTvCategory);
+        _moviesCategory = FilterCategoryAdultContent(_fullMoviesCategory);
+        _seriesCategory = FilterCategoryAdultContent(_fullSeriesCategory);
+
+        MarkFavoriteChannels();
+
+        var movieGroups = (_moviesCategory?.Groups ?? []).ToList();
+        movieGroups = OrderGroupsWithAdultAtEnd(movieGroups);
+        if (movieGroups.Count > 1)
+        {
+            movieGroups.Insert(0, new ChannelGroup
+            {
+                Name = "Todas",
+                Channels = new ObservableCollection<Channel>(movieGroups.SelectMany(g => g.Channels))
+            });
+        }
+        MovieCategoryList = new ObservableCollection<ChannelGroup>(movieGroups);
+
+        var seriesGroups = (_seriesCategory?.Groups ?? []).ToList();
+        seriesGroups = OrderGroupsWithAdultAtEnd(seriesGroups);
+        if (seriesGroups.Count > 1)
+        {
+            seriesGroups.Insert(0, new ChannelGroup
+            {
+                Name = "Todas",
+                Channels = new ObservableCollection<Channel>(seriesGroups.SelectMany(g => g.Channels))
+            });
+        }
+        SeriesCategoryList = new ObservableCollection<ChannelGroup>(seriesGroups);
+
+        SelectedMovieCategory = MovieCategoryList.FirstOrDefault(g => g.Name == SelectedMovieCategory?.Name) ?? MovieCategoryList.FirstOrDefault();
+        SelectedSeriesCategory = SeriesCategoryList.FirstOrDefault(g => g.Name == SelectedSeriesCategory?.Name) ?? SeriesCategoryList.FirstOrDefault();
+
+        OnPropertyChanged(nameof(LiveTvChannelCount));
+        OnPropertyChanged(nameof(MovieCount));
+        OnPropertyChanged(nameof(SeriesCount));
+        OnPropertyChanged(nameof(TotalChannels));
+
+        ApplyFilter();
+        RefreshFavoriteLists();
+        RefreshHistoryLists();
+    }
+
+    private List<ChannelGroup> OrderGroupsWithAdultAtEnd(List<ChannelGroup> groups)
+    {
+        return groups.OrderBy(g => 
+        {
+            return AdultKeywords.Any(kw => g.Name.Contains(kw, StringComparison.OrdinalIgnoreCase)) ? 1 : 0;
+        }).ToList();
     }
 
     #region Filtering
@@ -378,7 +454,15 @@ public partial class MainViewModel : ObservableObject
         if (!string.IsNullOrWhiteSpace(SearchText))
             source = source.Where(c => c.Name.Contains(SearchText, StringComparison.OrdinalIgnoreCase));
 
-        FilteredMovies = new ObservableCollection<Channel>(source);
+        // Sorting
+        var channels = source.ToList();
+        if (SelectedSortOption == 1) // A-Z
+            channels = channels.OrderBy(c => c.Name).ToList();
+        else if (SelectedSortOption == 2) // Z-A
+            channels = channels.OrderByDescending(c => c.Name).ToList();
+        // else: option 0 = Más recientes = original M3U order (newest first)
+
+        FilteredMovies = new ObservableCollection<Channel>(channels);
     }
 
     [GeneratedRegex(@"[Ss](\d{1,2})\s*[Ee](\d{1,3})|[Tt](\d{1,2})\s*[Ee](\d{1,3})|(\d{1,2})[xX](\d{1,3})")]
@@ -491,11 +575,14 @@ public partial class MainViewModel : ObservableObject
             .Select(g =>
             {
                 var first = g.First().Channel;
+                // Pick first episode that has a non-empty logo; fall back to the very first
+                var bestLogoMatch = g.FirstOrDefault(e => !string.IsNullOrEmpty(e.Channel.LogoUrl));
+                var bestLogo = bestLogoMatch.Channel != null ? bestLogoMatch.Channel.LogoUrl : first.LogoUrl;
                 var seasonCount = g.Select(e => e.Season).Where(s => s > 0).Distinct().Count();
                 return new Channel
                 {
                     Name = g.Key,
-                    LogoUrl = first.LogoUrl,
+                    LogoUrl = bestLogo,
                     GroupTitle = seasonCount > 0
                         ? $"{seasonCount} temp \u00B7 {g.Count()} ep"
                         : $"{g.Count()} episodios",
@@ -504,8 +591,14 @@ public partial class MainViewModel : ObservableObject
                     IsFavorite = _favoriteSeriesSet.Contains(g.Key)
                 };
             })
-            .OrderBy(c => c.Name)
+            // .OrderBy(c => c.Name) -> default preserves m3u order for latest additions at the top, we just handle Sort options:
             .ToList();
+
+        if (SelectedSortOption == 1) // A-Z
+            shows = shows.OrderBy(c => c.Name).ToList();
+        else if (SelectedSortOption == 2) // Z-A
+            shows = shows.OrderByDescending(c => c.Name).ToList();
+        // else: option 0 = Más recientes = original M3U order (newest first)
 
         if (!string.IsNullOrWhiteSpace(SearchText))
             shows = shows.Where(c => c.Name.Contains(SearchText, StringComparison.OrdinalIgnoreCase)).ToList();
@@ -521,15 +614,21 @@ public partial class MainViewModel : ObservableObject
             .Where(e => e.SeriesName.Equals(_currentSeriesShowName, StringComparison.OrdinalIgnoreCase))
             .ToList();
 
+        // Show-level fallback logo: first episode of this show that has a logo
+        var showLogoMatch = episodes.FirstOrDefault(e => !string.IsNullOrEmpty(e.Channel.LogoUrl));
+        var showLogo = showLogoMatch.Channel != null ? showLogoMatch.Channel.LogoUrl : string.Empty;
+
         var seasonItems = episodes
             .Select(e => e.Season).Where(s => s > 0).Distinct().OrderBy(s => s)
             .Select(s =>
             {
                 var seasonEps = episodes.Where(e => e.Season == s).ToList();
+                var seasonLogoMatch = seasonEps.FirstOrDefault(ep => !string.IsNullOrEmpty(ep.Channel.LogoUrl));
+                var seasonLogo = seasonLogoMatch.Channel != null ? seasonLogoMatch.Channel.LogoUrl : showLogo;
                 return new Channel
                 {
                     Name = $"Temporada {s}",
-                    LogoUrl = seasonEps.First().Channel.LogoUrl,
+                    LogoUrl = seasonLogo,
                     GroupTitle = $"{seasonEps.Count} episodios",
                     Url = string.Empty,
                     Category = CategoryType.Series,
@@ -551,7 +650,35 @@ public partial class MainViewModel : ObservableObject
         if (_currentSeriesSeason > 0)
             source = source.Where(e => e.Season == _currentSeriesSeason);
 
-        var channels = source.OrderBy(e => e.Season).ThenBy(e => e.Episode).Select(e => e.Channel);
+        var sourceList = source.OrderBy(e => e.Season).ThenBy(e => e.Episode).ToList();
+
+        // Inherit show-level logo for episodes that have no logo of their own
+        var showLogoMatch2 = _currentSeriesShowName != null
+            ? _parsedSeriesData!.FirstOrDefault(e =>
+                e.SeriesName.Equals(_currentSeriesShowName, StringComparison.OrdinalIgnoreCase)
+                && !string.IsNullOrEmpty(e.Channel.LogoUrl))
+            : default;
+        var showLogo = showLogoMatch2.Channel != null ? showLogoMatch2.Channel.LogoUrl : string.Empty;
+
+        var channels = sourceList.Select(e =>
+        {
+            if (string.IsNullOrEmpty(e.Channel.LogoUrl) && !string.IsNullOrEmpty(showLogo))
+            {
+                // Clone to avoid mutating the original channel
+                return new Channel
+                {
+                    Name = e.Channel.Name,
+                    Url = e.Channel.Url,
+                    LogoUrl = showLogo,
+                    GroupTitle = e.Channel.GroupTitle,
+                    TvgId = e.Channel.TvgId,
+                    TvgName = e.Channel.TvgName,
+                    Category = e.Channel.Category,
+                    IsFavorite = e.Channel.IsFavorite
+                };
+            }
+            return e.Channel;
+        }).AsEnumerable();
 
         if (!string.IsNullOrWhiteSpace(SearchText))
             channels = channels.Where(c => c.Name.Contains(SearchText, StringComparison.OrdinalIgnoreCase));
@@ -689,6 +816,65 @@ public partial class MainViewModel : ObservableObject
         IsViewingFullList = false;
     }
 
+    private Channel? GetNextEpisode()
+    {
+        if (_parsedSeriesData == null || SelectedChannel == null)
+            return null;
+
+        // Find current episode in parsed data
+        var currentUrl = SelectedChannel.Url;
+        var currentEntry = _parsedSeriesData
+            .FirstOrDefault(e => e.Channel.Url.Equals(currentUrl, StringComparison.OrdinalIgnoreCase));
+
+        if (currentEntry.Channel == null || currentEntry.Season <= 0)
+            return null;
+
+        // Get all episodes for this series, ordered
+        var seriesEpisodes = _parsedSeriesData
+            .Where(e => e.SeriesName.Equals(currentEntry.SeriesName, StringComparison.OrdinalIgnoreCase))
+            .OrderBy(e => e.Season)
+            .ThenBy(e => e.Episode)
+            .ToList();
+
+        var currentIndex = seriesEpisodes.FindIndex(e =>
+            e.Channel.Url.Equals(currentUrl, StringComparison.OrdinalIgnoreCase));
+
+        if (currentIndex >= 0 && currentIndex < seriesEpisodes.Count - 1)
+            return seriesEpisodes[currentIndex + 1].Channel;
+
+        return null;
+    }
+
+    private void HandleEndReached()
+    {
+        var nextEpisode = GetNextEpisode();
+        if (nextEpisode != null)
+        {
+            SaveCurrentWatchPosition();
+            SelectedChannel = nextEpisode;
+            AddToWatchHistory(nextEpisode);
+            Player.PlayNextChannel(nextEpisode);
+        }
+        else
+        {
+            Player.HasMedia = false;
+            Player.StatusText = "Reproducción finalizada";
+        }
+    }
+
+    [RelayCommand]
+    private void SkipToNextEpisode()
+    {
+        var nextEpisode = GetNextEpisode();
+        if (nextEpisode != null)
+        {
+            SaveCurrentWatchPosition();
+            SelectedChannel = nextEpisode;
+            AddToWatchHistory(nextEpisode);
+            Player.PlayNextChannel(nextEpisode);
+        }
+    }
+
     public void PlayFromHistory(WatchHistoryEntry entry)
     {
         SaveCurrentWatchPosition();
@@ -767,7 +953,9 @@ public partial class MainViewModel : ObservableObject
                 .Select(g => new Channel
                 {
                     Name = g.Key,
-                    LogoUrl = g.First().Channel.LogoUrl,
+                    LogoUrl = g.Where(e => !string.IsNullOrEmpty(e.Channel.LogoUrl))
+                               .Select(e => e.Channel.LogoUrl)
+                               .FirstOrDefault() ?? g.First().Channel.LogoUrl,
                     Url = string.Empty,
                     Category = CategoryType.Series
                 }));
@@ -940,6 +1128,7 @@ public partial class MainViewModel : ObservableObject
         _favoriteSeriesSet = new HashSet<string>(settings.FavoriteSeriesNames ?? [], StringComparer.OrdinalIgnoreCase);
         _watchHistory = settings.WatchHistory?.ToList() ?? [];
         Player.MaxReconnectAttempts = settings.MaxReconnectAttempts;
+        HideAdultContent = settings.HideAdultContent;
         RefreshHistoryLists();
     }
 
@@ -954,6 +1143,7 @@ public partial class MainViewModel : ObservableObject
         settings.FavoriteUrls = _favoriteUrlSet.ToList();
         settings.FavoriteSeriesNames = _favoriteSeriesSet.ToList();
         settings.WatchHistory = _watchHistory;
+        settings.HideAdultContent = HideAdultContent;
     }
 
     public void ClearWatchHistory()

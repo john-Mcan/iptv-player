@@ -88,6 +88,17 @@
                 <!-- Separator -->
                 <Border Height="1" Background="{StaticResource BorderBrush}" Margin="0,24,0,24"/>
 
+                <!-- ═══ CONTENIDO ═══ -->
+                <TextBlock Text="CONTENIDO" FontSize="11" FontWeight="SemiBold"
+                           Foreground="{StaticResource AccentBrush}" Margin="0,0,0,14"/>
+
+                <CheckBox x:Name="HideAdultCheckBox" Style="{StaticResource DarkCheckBox}"
+                          Content="Ocultar contenido para adultos (+18)"
+                          Margin="0,0,0,18"/>
+
+                <!-- Separator -->
+                <Border Height="1" Background="{StaticResource BorderBrush}" Margin="0,0,0,24"/>
+
                 <!-- ═══ DATOS ═══ -->
                 <TextBlock Text="DATOS" FontSize="11" FontWeight="SemiBold"
                            Foreground="{StaticResource AccentBrush}" Margin="0,0,0,14"/>

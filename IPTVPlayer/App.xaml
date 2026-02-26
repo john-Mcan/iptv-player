@@ -19,59 +19,171 @@
         <DrawingImage x:Key="ChucaoIcon">
             <DrawingImage.Drawing>
                 <DrawingGroup>
-                    <GeometryDrawing Brush="#7B5B3A">
+                    <!-- Legs -->
+                    <GeometryDrawing Brush="Transparent">
+                        <GeometryDrawing.Pen>
+                            <Pen Brush="White" Thickness="2" StartLineCap="Round" EndLineCap="Round" LineJoin="Round"/>
+                        </GeometryDrawing.Pen>
                         <GeometryDrawing.Geometry>
-                            <PathGeometry Figures="M33,14 L42,8 L39,17 L35,18 Z"/>
+                            <PathGeometry Figures="M 32 75 L 25 92 M 25 92 L 15 95 M 25 92 L 18 88 M 25 92 L 32 94 M 52 75 L 45 90 M 45 90 L 35 93 M 45 90 L 38 86 M 45 90 L 52 92"/>
                         </GeometryDrawing.Geometry>
                     </GeometryDrawing>
-                    <GeometryDrawing Brush="#7B5B3A">
+
+                    <!-- Tail -->
+                    <GeometryDrawing Brush="#B2653B">
+                        <GeometryDrawing.Pen>
+                            <Pen Brush="White" Thickness="2" StartLineCap="Round" EndLineCap="Round" LineJoin="Round"/>
+                        </GeometryDrawing.Pen>
                         <GeometryDrawing.Geometry>
-                            <EllipseGeometry Center="22,25" RadiusX="16" RadiusY="15"/>
+                            <PathGeometry Figures="M 65 55 C 75 45, 85 20, 85 20 C 90 25, 85 35, 85 35 C 88 40, 85 48, 85 48 C 87 53, 83 58, 83 58 C 85 62, 75 65, 65 65 Z"/>
                         </GeometryDrawing.Geometry>
                     </GeometryDrawing>
-                    <GeometryDrawing Brush="#5A4228">
+                    <!-- Tail feather lines -->
+                    <GeometryDrawing Brush="Transparent">
+                        <GeometryDrawing.Pen>
+                            <Pen Brush="White" Thickness="2" StartLineCap="Round" EndLineCap="Round"/>
+                        </GeometryDrawing.Pen>
                         <GeometryDrawing.Geometry>
-                            <PathGeometry Figures="M10,15 C14,8 24,8 30,13 C24,10 14,10 10,15 Z"/>
+                            <PathGeometry Figures="M 72 45 L 82 25 M 75 50 L 82 40 M 75 55 L 80 50"/>
                         </GeometryDrawing.Geometry>
                     </GeometryDrawing>
-                    <GeometryDrawing Brush="#9B7B5A">
+
+                    <!-- Base Body Fill -->
+                    <GeometryDrawing Brush="#B2653B">
                         <GeometryDrawing.Geometry>
-                            <PathGeometry Figures="M28,14 C36,18 38,28 34,36 C38,30 38,18 32,12 Z"/>
+                            <PathGeometry Figures="M 35 18 C 45 18, 60 22, 70 35 C 78 45, 75 60, 65 70 C 55 80, 35 80, 25 70 C 12 60, 10 45, 15 35 C 18 28, 20 28, 25 25 C 30 22, 32 18, 35 18 Z"/>
                         </GeometryDrawing.Geometry>
                     </GeometryDrawing>
-                    <GeometryDrawing Brush="#E8752A">
+
+                    <!-- Orange Breast (clipped to body) -->
+                    <GeometryDrawing Brush="#F47B20">
                         <GeometryDrawing.Geometry>
-                            <EllipseGeometry Center="18,28" RadiusX="9" RadiusY="10"/>
+                            <CombinedGeometry GeometryCombineMode="Intersect">
+                                <CombinedGeometry.Geometry1>
+                                    <PathGeometry Figures="M 40 10 C 45 30, 45 45, 30 65 L 0 65 L 0 10 Z"/>
+                                </CombinedGeometry.Geometry1>
+                                <CombinedGeometry.Geometry2>
+                                    <PathGeometry Figures="M 35 18 C 45 18, 60 22, 70 35 C 78 45, 75 60, 65 70 C 55 80, 35 80, 25 70 C 12 60, 10 45, 15 35 C 18 28, 20 28, 25 25 C 30 22, 32 18, 35 18 Z"/>
+                                </CombinedGeometry.Geometry2>
+                            </CombinedGeometry>
                         </GeometryDrawing.Geometry>
                     </GeometryDrawing>
+
+                    <!-- Grey Belly (clipped to body) -->
+                    <GeometryDrawing Brush="#9D8D84">
+                        <GeometryDrawing.Geometry>
+                            <CombinedGeometry GeometryCombineMode="Intersect">
+                                <CombinedGeometry.Geometry1>
+                                    <PathGeometry Figures="M 0 55 C 25 50, 50 50, 80 55 L 80 95 L 0 95 Z"/>
+                                </CombinedGeometry.Geometry1>
+                                <CombinedGeometry.Geometry2>
+                                    <PathGeometry Figures="M 35 18 C 45 18, 60 22, 70 35 C 78 45, 75 60, 65 70 C 55 80, 35 80, 25 70 C 12 60, 10 45, 15 35 C 18 28, 20 28, 25 25 C 30 22, 32 18, 35 18 Z"/>
+                                </CombinedGeometry.Geometry2>
+                            </CombinedGeometry>
+                        </GeometryDrawing.Geometry>
+                    </GeometryDrawing>
+
+                    <!-- Belly White Dots -->
                     <GeometryDrawing Brush="White">
                         <GeometryDrawing.Geometry>
                             <GeometryGroup>
-                                <EllipseGeometry Center="12,34" RadiusX="1.2" RadiusY="1.2"/>
-                                <EllipseGeometry Center="16,36" RadiusX="1.2" RadiusY="1.2"/>
-                                <EllipseGeometry Center="20,36" RadiusX="1.2" RadiusY="1.2"/>
-                                <EllipseGeometry Center="24,34" RadiusX="1.2" RadiusY="1.2"/>
+                                <EllipseGeometry Center="28,65" RadiusX="2.5" RadiusY="2.5"/>
+                                <EllipseGeometry Center="38,62" RadiusX="2.5" RadiusY="2.5"/>
+                                <EllipseGeometry Center="48,64" RadiusX="2.5" RadiusY="2.5"/>
+                                <EllipseGeometry Center="33,72" RadiusX="2.5" RadiusY="2.5"/>
+                                <EllipseGeometry Center="43,73" RadiusX="2.5" RadiusY="2.5"/>
+                                <EllipseGeometry Center="53,69" RadiusX="2.5" RadiusY="2.5"/>
                             </GeometryGroup>
                         </GeometryDrawing.Geometry>
                     </GeometryDrawing>
+
+                    <!-- Belly Dark Dots -->
+                    <GeometryDrawing Brush="#35170C">
+                        <GeometryDrawing.Geometry>
+                            <GeometryGroup>
+                                <EllipseGeometry Center="35,58" RadiusX="1.5" RadiusY="1.5"/>
+                                <EllipseGeometry Center="45,57" RadiusX="1.5" RadiusY="1.5"/>
+                                <EllipseGeometry Center="26,70" RadiusX="1.5" RadiusY="1.5"/>
+                                <EllipseGeometry Center="38,68" RadiusX="1.5" RadiusY="1.5"/>
+                                <EllipseGeometry Center="48,71" RadiusX="1.5" RadiusY="1.5"/>
+                                <EllipseGeometry Center="60,64" RadiusX="1.5" RadiusY="1.5"/>
+                            </GeometryGroup>
+                        </GeometryDrawing.Geometry>
+                    </GeometryDrawing>
+
+                    <!-- Body Outline -->
+                    <GeometryDrawing Brush="Transparent">
+                        <GeometryDrawing.Pen>
+                            <Pen Brush="White" Thickness="2" StartLineCap="Round" EndLineCap="Round" LineJoin="Round"/>
+                        </GeometryDrawing.Pen>
+                        <GeometryDrawing.Geometry>
+                            <PathGeometry Figures="M 35 18 C 45 18, 60 22, 70 35 C 78 45, 75 60, 65 70 C 55 80, 35 80, 25 70 C 12 60, 10 45, 15 35 C 18 28, 20 28, 25 25 C 30 22, 32 18, 35 18 Z"/>
+                        </GeometryDrawing.Geometry>
+                    </GeometryDrawing>
+
+                    <!-- Wing -->
+                    <GeometryDrawing Brush="#B2653B">
+                        <GeometryDrawing.Pen>
+                            <Pen Brush="White" Thickness="2" StartLineCap="Round" EndLineCap="Round" LineJoin="Round"/>
+                        </GeometryDrawing.Pen>
+                        <GeometryDrawing.Geometry>
+                            <PathGeometry Figures="M 40 40 C 60 35, 75 45, 75 55 C 75 65, 60 70, 50 63 C 40 55, 35 45, 40 40 Z"/>
+                        </GeometryDrawing.Geometry>
+                    </GeometryDrawing>
+                    <!-- Wing feather lines -->
+                    <GeometryDrawing Brush="Transparent">
+                        <GeometryDrawing.Pen>
+                            <Pen Brush="White" Thickness="2" StartLineCap="Round" EndLineCap="Round"/>
+                        </GeometryDrawing.Pen>
+                        <GeometryDrawing.Geometry>
+                            <PathGeometry Figures="M 62 45 L 72 50 M 58 50 L 70 55 M 54 55 L 65 60"/>
+                        </GeometryDrawing.Geometry>
+                    </GeometryDrawing>
+
+                    <!-- Beak -->
+                    <GeometryDrawing Brush="#543222">
+                        <GeometryDrawing.Pen>
+                            <Pen Brush="White" Thickness="2" StartLineCap="Round" EndLineCap="Round" LineJoin="Round"/>
+                        </GeometryDrawing.Pen>
+                        <GeometryDrawing.Geometry>
+                            <PathGeometry Figures="M 17 28 L 3 32 L 15 36 Z"/>
+                        </GeometryDrawing.Geometry>
+                    </GeometryDrawing>
+                    <!-- Beak line -->
+                    <GeometryDrawing Brush="Transparent">
+                        <GeometryDrawing.Pen>
+                            <Pen Brush="White" Thickness="2" StartLineCap="Round" EndLineCap="Round"/>
+                        </GeometryDrawing.Pen>
+                        <GeometryDrawing.Geometry>
+                            <PathGeometry Figures="M 3 32 L 12 33"/>
+                        </GeometryDrawing.Geometry>
+                    </GeometryDrawing>
+
+                    <!-- Eye Base -->
+                    <GeometryDrawing Brush="#35170C">
+                        <GeometryDrawing.Geometry>
+                            <EllipseGeometry Center="26,28" RadiusX="4.5" RadiusY="4.5"/>
+                        </GeometryDrawing.Geometry>
+                    </GeometryDrawing>
+                    <!-- Eye Highlight 1 -->
                     <GeometryDrawing Brush="White">
                         <GeometryDrawing.Geometry>
-                            <EllipseGeometry Center="15,17" RadiusX="3.2" RadiusY="3.2"/>
+                            <EllipseGeometry Center="24.5,26.5" RadiusX="1.5" RadiusY="1.5"/>
                         </GeometryDrawing.Geometry>
                     </GeometryDrawing>
-                    <GeometryDrawing Brush="#1A1A1E">
-                        <GeometryDrawing.Geometry>
-                            <EllipseGeometry Center="15,17" RadiusX="2" RadiusY="2"/>
-                        </GeometryDrawing.Geometry>
-                    </GeometryDrawing>
+                    <!-- Eye Highlight 2 -->
                     <GeometryDrawing Brush="White">
                         <GeometryDrawing.Geometry>
-                            <EllipseGeometry Center="14.2,16.2" RadiusX="0.7" RadiusY="0.7"/>
+                            <EllipseGeometry Center="27,29" RadiusX="0.5" RadiusY="0.5"/>
                         </GeometryDrawing.Geometry>
                     </GeometryDrawing>
-                    <GeometryDrawing Brush="#2D1F14">
+                    <!-- Eyebrow -->
+                    <GeometryDrawing Brush="Transparent">
+                        <GeometryDrawing.Pen>
+                            <Pen Brush="White" Thickness="2" StartLineCap="Round" EndLineCap="Round"/>
+                        </GeometryDrawing.Pen>
                         <GeometryDrawing.Geometry>
-                            <PathGeometry Figures="M7,19 L2,18 L7,16.5 Z"/>
+                            <PathGeometry Figures="M 23 23 Q 26 21.5, 30 22.5"/>
                         </GeometryDrawing.Geometry>
                     </GeometryDrawing>
                 </DrawingGroup>
@@ -182,9 +294,13 @@
                             </Grid>
                         </Border>
                         <ControlTemplate.Triggers>
-                            <DataTrigger Binding="{Binding Text, RelativeSource={RelativeSource Self}}" Value="">
+                            <MultiDataTrigger>
+                                <MultiDataTrigger.Conditions>
+                                    <Condition Binding="{Binding Text, RelativeSource={RelativeSource Self}}" Value="" />
+                                    <Condition Binding="{Binding IsFocused, RelativeSource={RelativeSource Self}}" Value="False" />
+                                </MultiDataTrigger.Conditions>
                                 <Setter TargetName="PlaceholderText" Property="Visibility" Value="Visible" />
-                            </DataTrigger>
+                            </MultiDataTrigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
                 </Setter.Value>
