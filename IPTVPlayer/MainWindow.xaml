@@ -1288,7 +1288,6 @@
                     <!-- Movie grid -->
                     <ListBox x:Name="MovieGrid" Grid.Row="1"
                              ItemsSource="{Binding FilteredMovies}"
-                             SelectionChanged="ContentGrid_SelectionChanged"
                              ScrollViewer.HorizontalScrollBarVisibility="Disabled"
                              ScrollViewer.CanContentScroll="True"
                              VirtualizingStackPanel.IsVirtualizing="True"
@@ -1315,6 +1314,11 @@
                         <ListBox.ItemTemplate>
                             <DataTemplate>
                                 <Border Width="130" Margin="4" CornerRadius="6" ClipToBounds="True" Cursor="Hand">
+                                    <Border.InputBindings>
+                                        <MouseBinding MouseAction="LeftClick"
+                                                      Command="{Binding DataContext.PlayMovieCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                      CommandParameter="{Binding}" />
+                                    </Border.InputBindings>
                                     <Border.Style>
                                         <Style TargetType="Border">
                                             <Setter Property="Background" Value="{StaticResource SurfaceBrush}"/>
@@ -1453,7 +1457,6 @@
                     <!-- Series grid -->
                     <ListBox x:Name="SeriesGrid" Grid.Row="2"
                              ItemsSource="{Binding FilteredSeries}"
-                             SelectionChanged="SeriesGrid_SelectionChanged"
                              ScrollViewer.HorizontalScrollBarVisibility="Disabled"
                              ScrollViewer.CanContentScroll="True"
                              VirtualizingStackPanel.IsVirtualizing="True"
@@ -1480,6 +1483,11 @@
                         <ListBox.ItemTemplate>
                             <DataTemplate>
                                 <Border Width="130" Margin="4" CornerRadius="6" ClipToBounds="True" Cursor="Hand">
+                                    <Border.InputBindings>
+                                        <MouseBinding MouseAction="LeftClick"
+                                                      Command="{Binding DataContext.ClickSeriesItemCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                      CommandParameter="{Binding}" />
+                                    </Border.InputBindings>
                                     <Border.Style>
                                         <Style TargetType="Border">
                                             <Setter Property="Background" Value="{StaticResource SurfaceBrush}"/>

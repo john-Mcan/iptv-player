@@ -798,6 +798,12 @@ public partial class MainViewModel : ObservableObject
     #region Playback
 
     [RelayCommand]
+    private void PlayMovie(Channel channel) => PlayChannel(channel);
+
+    [RelayCommand]
+    private void ClickSeriesItem(Channel channel) => HandleSeriesItemClick(channel);
+
+    [RelayCommand]
     private void PlayFromFullList(object? item)
     {
         if (item is Channel channel)

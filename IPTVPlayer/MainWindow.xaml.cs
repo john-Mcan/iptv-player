@@ -227,23 +227,6 @@ public partial class MainWindow : Window
             _vm.PlayChannel(channel);
     }
 
-    private void ContentGrid_SelectionChanged(object sender, SelectionChangedEventArgs e)
-    {
-        if (sender is ListBox lb && lb.SelectedItem is Channel channel)
-        {
-            _vm.PlayChannel(channel);
-            lb.SelectedItem = null; // allow re-selecting same item
-        }
-    }
-
-    private void SeriesGrid_SelectionChanged(object sender, SelectionChangedEventArgs e)
-    {
-        if (sender is ListBox lb && lb.SelectedItem is Channel channel)
-        {
-            _vm.HandleSeriesItemClick(channel);
-            lb.SelectedItem = null; // allow re-selecting same item
-        }
-    }
 
     private void FavoriteItem_Click(object sender, MouseButtonEventArgs e)
     {
