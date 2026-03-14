@@ -48,7 +48,8 @@ public partial class MainWindow : Window
         }
         Width = _settings.WindowWidth;
         Height = _settings.WindowHeight;
-        SidebarColumn.Width = new GridLength(_settings.SidebarWidth);
+        var sidebarW = _settings.SidebarWidth < 150 ? 280 : _settings.SidebarWidth;
+        SidebarColumn.Width = new GridLength(sidebarW);
 
         _hideControlsTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(3) };
         _hideControlsTimer.Tick += (_, _) =>
@@ -111,7 +112,8 @@ public partial class MainWindow : Window
         _settings.WindowHeight = Height;
         _settings.WindowLeft = Left;
         _settings.WindowTop = Top;
-        _settings.SidebarWidth = SidebarColumn.ActualWidth;
+        if (!_isFullscreen && SidebarColumn.ActualWidth >= 150)
+            _settings.SidebarWidth = SidebarColumn.ActualWidth;
         SettingsService.Save(_settings);
 
         _hideControlsTimer.Stop();
@@ -323,6 +325,7 @@ public partial class MainWindow : Window
         HeaderBar.Visibility = Visibility.Collapsed;
         LeftSidebar.Visibility = Visibility.Collapsed;
         SidebarSplitter.Visibility = Visibility.Collapsed;
+        SidebarColumn.MinWidth = 0;
         SidebarColumn.Width = new GridLength(0);
         HorizontalSplitter.Visibility = Visibility.Collapsed;
         BelowVideoRow.Height = new GridLength(0);
@@ -363,7 +366,8 @@ public partial class MainWindow : Window
         HeaderBar.Visibility = Visibility.Visible;
         LeftSidebar.Visibility = Visibility.Visible;
         SidebarSplitter.Visibility = Visibility.Visible;
-        SidebarColumn.Width = new GridLength(_settings.SidebarWidth);
+        SidebarColumn.MinWidth = 150;
+        SidebarColumn.Width = new GridLength(_settings.SidebarWidth < 150 ? 280 : _settings.SidebarWidth);
         HorizontalSplitter.Visibility = Visibility.Visible;
         BelowVideoRow.Height = new GridLength(2, GridUnitType.Star);
         BelowVideoRow.MinHeight = 100;
