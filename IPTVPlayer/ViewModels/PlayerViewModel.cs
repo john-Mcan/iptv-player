@@ -286,6 +286,15 @@ public partial class PlayerViewModel : ObservableObject, IDisposable
 
     private void RefreshTracks()
     {
+        // Some IPTV streams expose a video track but leave it disabled during
+        // startup. Select the first real track so LibVLC creates the video output.
+        if (_mediaPlayer.VideoTrack < 0)
+        {
+            var firstVideoTrack = _mediaPlayer.VideoTrackDescription?.FirstOrDefault(t => t.Id >= 0);
+            if (firstVideoTrack is not null)
+                _mediaPlayer.SetVideoTrack(firstVideoTrack.Value.Id);
+        }
+
         var currentAudioId = _mediaPlayer.AudioTrack;
         AudioTracks.Clear();
         foreach (var t in _mediaPlayer.AudioTrackDescription ?? [])

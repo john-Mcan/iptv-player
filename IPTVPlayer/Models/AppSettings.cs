@@ -10,6 +10,8 @@ public class AppSettings
     public double WindowHeight { get; set; } = 700;
     public double WindowLeft { get; set; } = double.NaN;
     public double WindowTop { get; set; } = double.NaN;
+    public bool IsWindowMaximized { get; set; }
+    public bool IsFullscreen { get; set; }
     public double SidebarWidth { get; set; } = 280;
     public bool AutoLoadPlaylist { get; set; } = true;
     public string ActiveTab { get; set; } = "LiveTV";

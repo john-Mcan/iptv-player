@@ -40,14 +40,7 @@ public partial class MainWindow : Window
         _vm.LoadSettings(_settings);
         DataContext = _vm;
 
-        if (!double.IsNaN(_settings.WindowLeft) && !double.IsNaN(_settings.WindowTop))
-        {
-            WindowStartupLocation = WindowStartupLocation.Manual;
-            Left = _settings.WindowLeft;
-            Top = _settings.WindowTop;
-        }
-        Width = _settings.WindowWidth;
-        Height = _settings.WindowHeight;
+        RestoreWindowPlacement();
         var sidebarW = _settings.SidebarWidth < 150 ? 280 : _settings.SidebarWidth;
         SidebarColumn.Width = new GridLength(sidebarW);
 
@@ -66,6 +59,51 @@ public partial class MainWindow : Window
         _epgRefreshTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(60) };
         _epgRefreshTimer.Tick += (_, _) => _vm.RefreshEpgDisplay();
         _epgRefreshTimer.Start();
+    }
+
+    private void RestoreWindowPlacement()
+    {
+        const double minimumVisibleSize = 100;
+        const double defaultWidth = 1100;
+        const double defaultHeight = 700;
+
+        var primaryWorkArea = SystemParameters.WorkArea;
+        var maxWidth = Math.Max(MinWidth, primaryWorkArea.Width);
+        var maxHeight = Math.Max(MinHeight, primaryWorkArea.Height);
+
+        Width = Math.Clamp(_settings.WindowWidth, MinWidth, maxWidth);
+        Height = Math.Clamp(_settings.WindowHeight, MinHeight, maxHeight);
+
+        if (double.IsNaN(_settings.WindowLeft) || double.IsNaN(_settings.WindowTop))
+        {
+            if (_settings.IsWindowMaximized)
+                WindowState = WindowState.Maximized;
+            return;
+        }
+
+        var savedBounds = new Rect(_settings.WindowLeft, _settings.WindowTop, Width, Height);
+        var virtualScreenBounds = new Rect(
+            SystemParameters.VirtualScreenLeft,
+            SystemParameters.VirtualScreenTop,
+            SystemParameters.VirtualScreenWidth,
+            SystemParameters.VirtualScreenHeight);
+        var visibleBounds = Rect.Intersect(savedBounds, virtualScreenBounds);
+        var isVisible = visibleBounds.Width >= minimumVisibleSize &&
+                        visibleBounds.Height >= minimumVisibleSize;
+
+        if (!isVisible)
+        {
+            Width = Math.Min(defaultWidth, maxWidth);
+            Height = Math.Min(defaultHeight, maxHeight);
+            WindowStartupLocation = WindowStartupLocation.CenterScreen;
+            return;
+        }
+
+        WindowStartupLocation = WindowStartupLocation.Manual;
+        Left = _settings.WindowLeft;
+        Top = _settings.WindowTop;
+        if (_settings.IsWindowMaximized)
+            WindowState = WindowState.Maximized;
     }
 
     private void Window_Loaded(object sender, RoutedEventArgs e)
@@ -88,6 +126,9 @@ public partial class MainWindow : Window
 
         if (_settings.AutoLoadPlaylist && !string.IsNullOrWhiteSpace(_vm.PlaylistUrl))
             _vm.LoadPlaylistCommand.Execute(null);
+
+        if (_settings.IsFullscreen)
+            EnterFullscreen();
     }
 
     private void EnableDarkTitleBar()
@@ -108,10 +149,17 @@ public partial class MainWindow : Window
     private void Window_Closing(object? sender, CancelEventArgs e)
     {
         _vm.SaveToSettings(_settings);
-        _settings.WindowWidth = Width;
-        _settings.WindowHeight = Height;
-        _settings.WindowLeft = Left;
-        _settings.WindowTop = Top;
+        var normalBounds = WindowState == WindowState.Normal && !_isFullscreen
+            ? new Rect(Left, Top, Width, Height)
+            : RestoreBounds;
+        _settings.WindowWidth = normalBounds.Width;
+        _settings.WindowHeight = normalBounds.Height;
+        _settings.WindowLeft = normalBounds.Left;
+        _settings.WindowTop = normalBounds.Top;
+        _settings.IsWindowMaximized = _isFullscreen
+            ? _prevWindowState == WindowState.Maximized
+            : WindowState == WindowState.Maximized;
+        _settings.IsFullscreen = _isFullscreen;
         if (!_isFullscreen && SidebarColumn.ActualWidth >= 150)
             _settings.SidebarWidth = SidebarColumn.ActualWidth;
         SettingsService.Save(_settings);
