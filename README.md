@@ -137,6 +137,33 @@ IPTVPlayer/
     ImageLoadConverter.cs          -- Carga asincrona de logos de canales
 ```
 
+## Contribuciones
+
+Los aportes son bienvenidos. Puedes abrir un *issue* para reportar errores o proponer mejoras, o enviar un *pull request* desde un fork del repositorio.
+
+Al enviar un aporte, aceptas que se publique bajo la misma licencia del proyecto ([PolyForm Noncommercial 1.0.0](LICENSE.md)).
+
 ## Licencia
 
-Uso privado.
+Copyright (c) 2026 John Moya C.
+
+Este proyecto es de **código fuente disponible** (no es *open source* en el sentido OSI) y se distribuye bajo la licencia [PolyForm Noncommercial 1.0.0](LICENSE.md).
+
+**Permitido:**
+
+- Ver, estudiar y compilar el código.
+- Usarlo con fines personales y no comerciales (estudio, entretenimiento privado, proyectos de hobby, investigación).
+- Hacer forks y modificaciones para proponer mejoras al proyecto.
+- Uso por organizaciones sin fines de lucro, instituciones educativas y entidades públicas.
+
+**No permitido:**
+
+- Cualquier uso comercial: vender el software o versiones derivadas, incluirlo en productos o servicios pagados, o usarlo dentro de una empresa con fines de lucro.
+
+Al redistribuir el código (por ejemplo, en un fork), debes incluir el archivo [LICENSE.md](LICENSE.md) con su línea `Required Notice`. El texto de [LICENSE.md](LICENSE.md) es el que rige; este resumen es solo orientativo.
+
+Para consultas sobre uso comercial, contacta al autor.
+
+### Dependencias de terceros
+
+Las dependencias mantienen sus propias licencias: LibVLC y LibVLCSharp (LGPL-2.1-or-later), CommunityToolkit.Mvvm (MIT) y VirtualizingWrapPanel (MIT).
