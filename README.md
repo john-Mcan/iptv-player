@@ -64,7 +64,9 @@
 
 | Películas | Series | Picture-in-Picture |
 |---|---|---|
-| ![Grilla de películas con «Continuar viendo»](docs/capturas/peliculas.png) | ![Serie abierta por temporadas](docs/capturas/series.png) | ![Ventana PiP sobre el escritorio](docs/capturas/pip.png) |
+| ![Grilla de películas con «Continuar viendo»](docs/capturas/peliculas.png) | ![Serie abierta con sus episodios](docs/capturas/series.png) | ![Ventana PiP con sus controles](docs/capturas/pip.png) |
+
+<sub>Las capturas usan una lista de demostración: canales con transmisión oficial y las películas abiertas de [Blender Studio](https://studio.blender.org/films/) (CC BY), con pósters de Wikimedia Commons.</sub>
 
 ## Uso
 
