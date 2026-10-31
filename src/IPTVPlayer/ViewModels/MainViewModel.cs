@@ -12,11 +12,10 @@ public partial class MainViewModel : ObservableObject
     private readonly PlaylistService _playlistService = new();
     private readonly EpgService _epgService = new();
     private const int MaxRecentUrls = 5;
-    private const int MaxHistoryEntries = 20;
 
     private HashSet<string> _favoriteUrlSet = new(StringComparer.OrdinalIgnoreCase);
     private HashSet<string> _favoriteSeriesSet = new(StringComparer.OrdinalIgnoreCase);
-    private List<WatchHistoryEntry> _watchHistory = [];
+    private WatchHistory _history = new();
     private WatchHistoryEntry? _currentWatchEntry;
     private string? _epgUrl;
 
@@ -788,7 +787,7 @@ public partial class MainViewModel : ObservableObject
         };
         SelectedChannel = channel;
         _currentWatchEntry = entry;
-        entry.Timestamp = DateTime.UtcNow;
+        _history.Touch(entry);
 
         if (entry.Category != CategoryType.LiveTV && entry.PositionMs > 0)
             Player.PlayChannelFromPosition(channel, entry.PositionMs);
@@ -874,33 +873,7 @@ public partial class MainViewModel : ObservableObject
 
     private void AddToWatchHistory(Channel channel)
     {
-        var existing = _watchHistory.FirstOrDefault(h =>
-            h.Url.Equals(channel.Url, StringComparison.OrdinalIgnoreCase));
-
-        if (existing != null)
-        {
-            existing.Timestamp = DateTime.UtcNow;
-            existing.Name = channel.Name;
-            existing.LogoUrl = channel.LogoUrl;
-            _currentWatchEntry = existing;
-        }
-        else
-        {
-            var entry = new WatchHistoryEntry
-            {
-                Url = channel.Url,
-                Name = channel.Name,
-                LogoUrl = channel.LogoUrl,
-                Category = channel.Category,
-                Timestamp = DateTime.UtcNow
-            };
-            _watchHistory.Insert(0, entry);
-            _currentWatchEntry = entry;
-        }
-
-        while (_watchHistory.Count > MaxHistoryEntries)
-            _watchHistory.RemoveAt(_watchHistory.Count - 1);
-
+        _currentWatchEntry = _history.Record(channel);
         RefreshHistoryLists();
     }
 
@@ -928,10 +901,8 @@ public partial class MainViewModel : ObservableObject
     {
         if (entry == null) return;
 
-        var existing = _watchHistory.FirstOrDefault(h => h.Url.Equals(entry.Url, StringComparison.OrdinalIgnoreCase));
-        if (existing != null)
+        if (_history.Remove(entry.Url))
         {
-            _watchHistory.Remove(existing);
             if (_currentWatchEntry?.Url.Equals(entry.Url, StringComparison.OrdinalIgnoreCase) == true)
             {
                 _currentWatchEntry = null;
@@ -942,11 +913,9 @@ public partial class MainViewModel : ObservableObject
 
     private void RefreshHistoryLists()
     {
-        var ordered = _watchHistory.OrderByDescending(h => h.Timestamp).ToList();
-
-        RecentLiveTv = new(ordered.Where(h => h.Category == CategoryType.LiveTV).Take(10));
-        ContinueWatchingMovies = new(ordered.Where(h => h.Category == CategoryType.Movies && h.HasProgress).Take(10));
-        ContinueWatchingSeries = new(ordered.Where(h => h.Category == CategoryType.Series && h.HasProgress).Take(10));
+        RecentLiveTv = new(_history.Recent(CategoryType.LiveTV, 10));
+        ContinueWatchingMovies = new(_history.ContinueWatching(CategoryType.Movies, 10));
+        ContinueWatchingSeries = new(_history.ContinueWatching(CategoryType.Series, 10));
 
         OnPropertyChanged(nameof(HasRecentLiveTv));
         OnPropertyChanged(nameof(HasContinueWatchingMovies));
@@ -1023,7 +992,7 @@ public partial class MainViewModel : ObservableObject
 
         _favoriteUrlSet = new HashSet<string>(settings.FavoriteUrls, StringComparer.OrdinalIgnoreCase);
         _favoriteSeriesSet = new HashSet<string>(settings.FavoriteSeriesNames ?? [], StringComparer.OrdinalIgnoreCase);
-        _watchHistory = settings.WatchHistory?.ToList() ?? [];
+        _history = new WatchHistory(settings.WatchHistory ?? []);
         Player.MaxReconnectAttempts = settings.MaxReconnectAttempts;
         HideAdultContent = settings.HideAdultContent;
         RefreshHistoryLists();
@@ -1039,13 +1008,13 @@ public partial class MainViewModel : ObservableObject
         settings.ActiveTab = ActiveTab.ToString();
         settings.FavoriteUrls = _favoriteUrlSet.ToList();
         settings.FavoriteSeriesNames = _favoriteSeriesSet.ToList();
-        settings.WatchHistory = _watchHistory;
+        settings.WatchHistory = _history.Entries.ToList();
         settings.HideAdultContent = HideAdultContent;
     }
 
     public void ClearWatchHistory()
     {
-        _watchHistory.Clear();
+        _history.Clear();
         _currentWatchEntry = null;
         RefreshHistoryLists();
     }
