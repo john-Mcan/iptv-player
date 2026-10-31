@@ -27,7 +27,7 @@ public static partial class EpisodeParser
         if (!match.Success)
             return new EpisodeInfo(name.Trim(), 0, 0);
 
-        var seriesName = name[..match.Index].Trim(' ', '-', '–', '—', ':', '.');
+        var seriesName = name[..match.Index].Trim(' ', '-', '\u2013', '\u2014', ':', '.');
         if (string.IsNullOrWhiteSpace(seriesName))
             seriesName = name.Trim();
 

@@ -20,7 +20,7 @@ public partial class MainViewModel : ObservableObject
     private WatchHistoryEntry? _currentWatchEntry;
     private string? _epgUrl;
 
-    private List<(string SeriesName, int Season, int Episode, Channel Channel)>? _parsedSeriesData;
+    private SeriesCatalog? _seriesCatalog;
     private string? _currentSeriesShowName;
     private int _currentSeriesSeason;
 
@@ -474,28 +474,19 @@ public partial class MainViewModel : ObservableObject
             source = _seriesCategory.Groups.SelectMany(g => g.Channels);
         else
         {
-            _parsedSeriesData = null;
+            _seriesCatalog = null;
             FilteredSeries = new();
             return;
         }
 
-        _parsedSeriesData = source.Select(c =>
-        {
-            var (seriesName, season, episode) = EpisodeParser.Parse(c.Name);
-            return (SeriesName: seriesName, Season: season, Episode: episode, Channel: c);
-        }).ToList();
+        _seriesCatalog = new SeriesCatalog(source);
 
         _currentSeriesShowName = null;
         _currentSeriesSeason = 0;
 
-        var hasPatternMatches = _parsedSeriesData.Any(e => e.Season > 0);
-        var seriesNames = _parsedSeriesData
-            .Where(e => e.Season > 0)
-            .Select(e => e.SeriesName)
-            .Distinct(StringComparer.OrdinalIgnoreCase)
-            .ToList();
+        var seriesNames = _seriesCatalog.ShowNames;
 
-        if (!hasPatternMatches)
+        if (!_seriesCatalog.HasEpisodes)
         {
             SeriesNavLevel = SeriesNavLevel.Episodes;
             SeriesBreadcrumb = string.Empty;
@@ -508,9 +499,7 @@ public partial class MainViewModel : ObservableObject
         else
         {
             _currentSeriesShowName = seriesNames.FirstOrDefault();
-            var seasons = _parsedSeriesData
-                .Select(e => e.Season).Where(s => s > 0).Distinct().ToList();
-            if (seasons.Count > 1)
+            if (_seriesCatalog.Seasons.Count > 1)
             {
                 SeriesNavLevel = SeriesNavLevel.Seasons;
                 SeriesBreadcrumb = _currentSeriesShowName ?? string.Empty;
@@ -527,7 +516,7 @@ public partial class MainViewModel : ObservableObject
 
     private void RefreshSeriesDisplay()
     {
-        if (_parsedSeriesData == null)
+        if (_seriesCatalog == null)
         {
             FilteredSeries = new();
             return;
@@ -543,19 +532,14 @@ public partial class MainViewModel : ObservableObject
 
     private void DisplaySeriesShows()
     {
-        var shows = _parsedSeriesData!
-            .GroupBy(e => e.SeriesName, StringComparer.OrdinalIgnoreCase)
+        var shows = _seriesCatalog!.GroupByShow()
             .Select(g =>
             {
-                var first = g.First().Channel;
-                // Pick first episode that has a non-empty logo; fall back to the very first
-                var bestLogoMatch = g.FirstOrDefault(e => !string.IsNullOrEmpty(e.Channel.LogoUrl));
-                var bestLogo = bestLogoMatch.Channel != null ? bestLogoMatch.Channel.LogoUrl : first.LogoUrl;
                 var seasonCount = g.Select(e => e.Season).Where(s => s > 0).Distinct().Count();
                 return new Channel
                 {
                     Name = g.Key,
-                    LogoUrl = bestLogo,
+                    LogoUrl = SeriesCatalog.FirstLogo(g),
                     GroupTitle = seasonCount > 0
                         ? $"{seasonCount} temp \u00B7 {g.Count()} ep"
                         : $"{g.Count()} episodios",
@@ -583,25 +567,20 @@ public partial class MainViewModel : ObservableObject
     {
         if (_currentSeriesShowName == null) return;
 
-        var episodes = _parsedSeriesData!
-            .Where(e => e.SeriesName.Equals(_currentSeriesShowName, StringComparison.OrdinalIgnoreCase))
-            .ToList();
+        var episodes = _seriesCatalog!.EpisodesOf(_currentSeriesShowName);
 
         // Show-level fallback logo: first episode of this show that has a logo
-        var showLogoMatch = episodes.FirstOrDefault(e => !string.IsNullOrEmpty(e.Channel.LogoUrl));
-        var showLogo = showLogoMatch.Channel != null ? showLogoMatch.Channel.LogoUrl : string.Empty;
+        var showLogo = SeriesCatalog.FirstLogo(episodes);
 
-        var seasonItems = episodes
-            .Select(e => e.Season).Where(s => s > 0).Distinct().OrderBy(s => s)
+        var seasonItems = _seriesCatalog.SeasonsOf(_currentSeriesShowName)
             .Select(s =>
             {
                 var seasonEps = episodes.Where(e => e.Season == s).ToList();
-                var seasonLogoMatch = seasonEps.FirstOrDefault(ep => !string.IsNullOrEmpty(ep.Channel.LogoUrl));
-                var seasonLogo = seasonLogoMatch.Channel != null ? seasonLogoMatch.Channel.LogoUrl : showLogo;
+                var seasonLogo = SeriesCatalog.FirstLogo(seasonEps);
                 return new Channel
                 {
                     Name = $"Temporada {s}",
-                    LogoUrl = seasonLogo,
+                    LogoUrl = string.IsNullOrEmpty(seasonLogo) ? showLogo : seasonLogo,
                     GroupTitle = $"{seasonEps.Count} episodios",
                     Url = string.Empty,
                     Category = CategoryType.Series,
@@ -615,25 +594,14 @@ public partial class MainViewModel : ObservableObject
 
     private void DisplaySeriesEpisodes()
     {
-        IEnumerable<(string SeriesName, int Season, int Episode, Channel Channel)> source = _parsedSeriesData!;
-
-        if (_currentSeriesShowName != null)
-            source = source.Where(e => e.SeriesName.Equals(_currentSeriesShowName, StringComparison.OrdinalIgnoreCase));
-
-        if (_currentSeriesSeason > 0)
-            source = source.Where(e => e.Season == _currentSeriesSeason);
-
-        var sourceList = source.OrderBy(e => e.Season).ThenBy(e => e.Episode).ToList();
+        var episodes = _seriesCatalog!.GetEpisodes(_currentSeriesShowName, _currentSeriesSeason);
 
         // Inherit show-level logo for episodes that have no logo of their own
-        var showLogoMatch2 = _currentSeriesShowName != null
-            ? _parsedSeriesData!.FirstOrDefault(e =>
-                e.SeriesName.Equals(_currentSeriesShowName, StringComparison.OrdinalIgnoreCase)
-                && !string.IsNullOrEmpty(e.Channel.LogoUrl))
-            : default;
-        var showLogo = showLogoMatch2.Channel != null ? showLogoMatch2.Channel.LogoUrl : string.Empty;
+        var showLogo = _currentSeriesShowName != null
+            ? SeriesCatalog.FirstLogo(_seriesCatalog.EpisodesOf(_currentSeriesShowName))
+            : string.Empty;
 
-        var channels = sourceList.Select(e =>
+        var channels = episodes.Select(e =>
         {
             if (string.IsNullOrEmpty(e.Channel.LogoUrl) && !string.IsNullOrEmpty(showLogo))
             {
@@ -651,7 +619,7 @@ public partial class MainViewModel : ObservableObject
                 };
             }
             return e.Channel;
-        }).AsEnumerable();
+        });
 
         if (!string.IsNullOrWhiteSpace(SearchText))
             channels = channels.Where(c => c.Name.Contains(SearchText, StringComparison.OrdinalIgnoreCase));
@@ -664,24 +632,8 @@ public partial class MainViewModel : ObservableObject
         switch (SeriesNavLevel)
         {
             case SeriesNavLevel.Shows:
-                _currentSeriesShowName = item.Name;
-                var episodes = _parsedSeriesData!
-                    .Where(e => e.SeriesName.Equals(item.Name, StringComparison.OrdinalIgnoreCase))
-                    .ToList();
-                var seasons = episodes.Select(e => e.Season).Where(s => s > 0).Distinct().ToList();
-
-                if (seasons.Count <= 1)
-                {
-                    _currentSeriesSeason = seasons.FirstOrDefault();
-                    SeriesNavLevel = SeriesNavLevel.Episodes;
-                    SeriesBreadcrumb = item.Name;
-                }
-                else
-                {
-                    SeriesNavLevel = SeriesNavLevel.Seasons;
-                    SeriesBreadcrumb = item.Name;
-                }
-                break;
+                NavigateToSeriesShow(item.Name);
+                return;
 
             case SeriesNavLevel.Seasons:
                 var seasonStr = item.Name.Replace("Temporada ", "");
@@ -708,12 +660,7 @@ public partial class MainViewModel : ObservableObject
         switch (SeriesNavLevel)
         {
             case SeriesNavLevel.Episodes when _currentSeriesShowName != null:
-                var episodes = _parsedSeriesData!
-                    .Where(e => e.SeriesName.Equals(_currentSeriesShowName, StringComparison.OrdinalIgnoreCase))
-                    .ToList();
-                var seasons = episodes.Select(e => e.Season).Where(s => s > 0).Distinct().ToList();
-
-                if (seasons.Count > 1 && _currentSeriesSeason > 0)
+                if (_seriesCatalog!.SeasonsOf(_currentSeriesShowName).Count > 1 && _currentSeriesSeason > 0)
                 {
                     _currentSeriesSeason = 0;
                     SeriesNavLevel = SeriesNavLevel.Seasons;
@@ -742,25 +689,21 @@ public partial class MainViewModel : ObservableObject
 
     public void NavigateToSeriesShow(string showName)
     {
-        if (_parsedSeriesData == null) return;
+        if (_seriesCatalog == null) return;
 
         _currentSeriesShowName = showName;
-        var episodes = _parsedSeriesData
-            .Where(e => e.SeriesName.Equals(showName, StringComparison.OrdinalIgnoreCase))
-            .ToList();
-        var seasons = episodes.Select(e => e.Season).Where(s => s > 0).Distinct().ToList();
+        var seasons = _seriesCatalog.SeasonsOf(showName);
 
         if (seasons.Count <= 1)
         {
             _currentSeriesSeason = seasons.FirstOrDefault();
             SeriesNavLevel = SeriesNavLevel.Episodes;
-            SeriesBreadcrumb = showName;
         }
         else
         {
             SeriesNavLevel = SeriesNavLevel.Seasons;
-            SeriesBreadcrumb = showName;
         }
+        SeriesBreadcrumb = showName;
 
         SearchText = string.Empty;
         RefreshSeriesDisplay();
@@ -800,33 +743,7 @@ public partial class MainViewModel : ObservableObject
     }
 
     private Channel? GetNextEpisode()
-    {
-        if (_parsedSeriesData == null || SelectedChannel == null)
-            return null;
-
-        // Find current episode in parsed data
-        var currentUrl = SelectedChannel.Url;
-        var currentEntry = _parsedSeriesData
-            .FirstOrDefault(e => e.Channel.Url.Equals(currentUrl, StringComparison.OrdinalIgnoreCase));
-
-        if (currentEntry.Channel == null || currentEntry.Season <= 0)
-            return null;
-
-        // Get all episodes for this series, ordered
-        var seriesEpisodes = _parsedSeriesData
-            .Where(e => e.SeriesName.Equals(currentEntry.SeriesName, StringComparison.OrdinalIgnoreCase))
-            .OrderBy(e => e.Season)
-            .ThenBy(e => e.Episode)
-            .ToList();
-
-        var currentIndex = seriesEpisodes.FindIndex(e =>
-            e.Channel.Url.Equals(currentUrl, StringComparison.OrdinalIgnoreCase));
-
-        if (currentIndex >= 0 && currentIndex < seriesEpisodes.Count - 1)
-            return seriesEpisodes[currentIndex + 1].Channel;
-
-        return null;
-    }
+        => SelectedChannel == null ? null : _seriesCatalog?.GetNextEpisode(SelectedChannel.Url);
 
     private void HandleEndReached()
     {
@@ -928,17 +845,14 @@ public partial class MainViewModel : ObservableObject
         LiveTvFavorites = new(favChannels.Where(c => c.Category == CategoryType.LiveTV));
         MovieFavorites = new(favChannels.Where(c => c.Category == CategoryType.Movies));
 
-        if (_parsedSeriesData != null && _favoriteSeriesSet.Count > 0)
+        if (_seriesCatalog != null && _favoriteSeriesSet.Count > 0)
         {
-            SeriesFavorites = new(_parsedSeriesData
-                .GroupBy(e => e.SeriesName, StringComparer.OrdinalIgnoreCase)
+            SeriesFavorites = new(_seriesCatalog.GroupByShow()
                 .Where(g => _favoriteSeriesSet.Contains(g.Key))
                 .Select(g => new Channel
                 {
                     Name = g.Key,
-                    LogoUrl = g.Where(e => !string.IsNullOrEmpty(e.Channel.LogoUrl))
-                               .Select(e => e.Channel.LogoUrl)
-                               .FirstOrDefault() ?? g.First().Channel.LogoUrl,
+                    LogoUrl = SeriesCatalog.FirstLogo(g),
                     Url = string.Empty,
                     Category = CategoryType.Series
                 }));
