@@ -32,12 +32,47 @@ public static class SettingsService
                 return new AppSettings();
 
             var json = File.ReadAllText(path);
-            return JsonSerializer.Deserialize<AppSettings>(json, JsonOptions) ?? new AppSettings();
+            var settings = JsonSerializer.Deserialize<AppSettings>(json, JsonOptions) ?? new AppSettings();
+            MigrateLegacyPlaylists(settings);
+            return settings;
         }
         catch
         {
             return new AppSettings();
         }
+    }
+
+    /// <summary>
+    /// Convierte las URLs de listas que guardaban las versiones anteriores (última y recientes)
+    /// en fuentes M3U, y deja como activa la última que se cargó.
+    /// </summary>
+    internal static void MigrateLegacyPlaylists(AppSettings settings)
+    {
+        if (settings.Sources.Count > 0)
+            return;
+
+        var urls = new[] { settings.LastPlaylistUrl }
+            .Concat(settings.RecentPlaylistUrls ?? [])
+            .Where(u => !string.IsNullOrWhiteSpace(u))
+            .Select(u => u.Trim())
+            .Distinct(StringComparer.OrdinalIgnoreCase);
+
+        foreach (var url in urls)
+        {
+            var name = PlaylistSource.SuggestName(url);
+            var duplicates = settings.Sources.Count(s =>
+                s.Name.Equals(name, StringComparison.OrdinalIgnoreCase)
+                || s.Name.StartsWith(name + " (", StringComparison.OrdinalIgnoreCase));
+            settings.Sources.Add(new PlaylistSource
+            {
+                Name = duplicates == 0 ? name : $"{name} ({duplicates + 1})",
+                Type = PlaylistSourceType.M3U,
+                Url = url
+            });
+        }
+
+        var last = settings.Sources.FirstOrDefault(s => s.Url.Equals(settings.LastPlaylistUrl.Trim(), StringComparison.OrdinalIgnoreCase));
+        settings.ActiveSourceId = last?.Id ?? string.Empty;
     }
 
     public static void Save(AppSettings settings, string path)

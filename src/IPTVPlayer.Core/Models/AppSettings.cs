@@ -2,8 +2,13 @@ namespace IPTVPlayer.Models;
 
 public class AppSettings
 {
+    public List<PlaylistSource> Sources { get; set; } = new();
+    public string ActiveSourceId { get; set; } = string.Empty;
+
+    // Versiones anteriores guardaban solo URLs de listas M3U; al leerlas se convierten en Sources.
     public string LastPlaylistUrl { get; set; } = string.Empty;
     public List<string> RecentPlaylistUrls { get; set; } = new();
+
     public int Volume { get; set; } = 80;
     public bool IsMuted { get; set; }
     public double WindowWidth { get; set; } = 1100;
