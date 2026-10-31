@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using IPTVPlayer.Models;
 
 namespace IPTVPlayer.Services;
@@ -13,7 +14,9 @@ public static class SettingsService
 
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
-        WriteIndented = true
+        WriteIndented = true,
+        // WindowLeft y WindowTop valen NaN hasta que la ventana se cierra por primera vez.
+        NumberHandling = JsonNumberHandling.AllowNamedFloatingPointLiterals
     };
 
     public static AppSettings Load() => Load(DefaultPath);
