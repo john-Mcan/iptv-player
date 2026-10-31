@@ -17,7 +17,8 @@ public readonly record struct EpisodeInfo(string SeriesName, int Season, int Epi
 /// </summary>
 public static partial class EpisodeParser
 {
-    [GeneratedRegex(@"[Ss](\d{1,2})\s*[Ee](\d{1,3})|[Tt](\d{1,2})\s*[Ee](\d{1,3})|(\d{1,2})[xX](\d{1,3})")]
+    // En «1x02» no se aceptan dígitos pegados antes ni después, para no leer «1920x1080» como episodio.
+    [GeneratedRegex(@"[Ss](\d{1,2})\s*[Ee](\d{1,3})|[Tt](\d{1,2})\s*[Ee](\d{1,3})|(?<!\d)(\d{1,2})[xX](\d{1,3})(?!\d)")]
     private static partial Regex EpisodePattern();
 
     public static EpisodeInfo Parse(string name)

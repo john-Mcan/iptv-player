@@ -44,6 +44,8 @@ public class EpisodeParserTests
     [InlineData("Película 4K HDR")]
     [InlineData("Seinfeld")]
     [InlineData("Temporada completa")]
+    [InlineData("Planeta Tierra 1920x1080")]
+    [InlineData("Concierto en vivo 1280X720")]
     public void Parse_NoMarcaComoEpisodioLoQueNoLoEs(string name)
     {
         var info = EpisodeParser.Parse(name);
