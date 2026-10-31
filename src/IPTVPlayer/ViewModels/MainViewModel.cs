@@ -10,13 +10,11 @@ namespace IPTVPlayer.ViewModels;
 public partial class MainViewModel : ObservableObject
 {
     private readonly PlaylistService _playlistService = new();
-    private readonly EpgService _epgService = new();
     private const int MaxRecentUrls = 5;
 
     private Favorites _favorites = new();
     private WatchHistory _history = new();
     private WatchHistoryEntry? _currentWatchEntry;
-    private string? _epgUrl;
 
     private SeriesCatalog? _seriesCatalog;
     private string? _currentSeriesShowName;
@@ -118,19 +116,6 @@ public partial class MainViewModel : ObservableObject
     [ObservableProperty]
     private ObservableCollection<WatchHistoryEntry> _continueWatchingSeries = new();
 
-    // EPG
-    [ObservableProperty]
-    private ObservableCollection<EpgProgram> _currentEpgProgrammes = new();
-
-    [ObservableProperty]
-    private EpgProgram? _currentProgram;
-
-    [ObservableProperty]
-    private EpgProgram? _nextProgram;
-
-    [ObservableProperty]
-    private bool _isEpgLoading;
-
     public bool IsLiveTvActive => ActiveTab == ContentTab.LiveTV;
     public bool IsMoviesActive => ActiveTab == ContentTab.Movies;
     public bool IsSeriesActive => ActiveTab == ContentTab.Series;
@@ -143,7 +128,6 @@ public partial class MainViewModel : ObservableObject
     public bool HasRecentLiveTv => RecentLiveTv.Count > 0;
     public bool HasContinueWatchingMovies => ContinueWatchingMovies.Count > 0;
     public bool HasContinueWatchingSeries => ContinueWatchingSeries.Count > 0;
-    public bool HasEpgData => CurrentEpgProgrammes.Count > 0;
 
     public int LiveTvChannelCount => _liveTvCategory?.TotalChannels ?? 0;
     public int MovieCount => _moviesCategory?.TotalChannels ?? 0;
@@ -151,6 +135,8 @@ public partial class MainViewModel : ObservableObject
     public int TotalChannels => LiveTvChannelCount + MovieCount + SeriesCount;
 
     public PlayerViewModel Player { get; } = new();
+
+    public EpgViewModel Epg { get; }
 
     // Full List View state
     [ObservableProperty]
@@ -212,6 +198,7 @@ public partial class MainViewModel : ObservableObject
 
     public MainViewModel()
     {
+        Epg = new EpgViewModel(status => Player.StatusText = status);
         Player.OnPositionUpdated = UpdateWatchPosition;
         Player.OnEndReached = HandleEndReached;
         Player.HasNextEpisode = () => GetNextEpisode() != null;
@@ -285,9 +272,9 @@ public partial class MainViewModel : ObservableObject
             Player.StatusText = $"Playlist cargada — {TotalChannels} canales";
             AddToRecentUrls(PlaylistUrl);
 
-            _epgUrl = _playlistService.EpgUrl;
-            if (!string.IsNullOrEmpty(_epgUrl))
-                _ = LoadEpgAsync();
+            var epgUrl = _playlistService.EpgUrl;
+            if (!string.IsNullOrEmpty(epgUrl))
+                _ = LoadEpgAsync(epgUrl);
         }
         catch (Exception ex)
         {
@@ -736,7 +723,7 @@ public partial class MainViewModel : ObservableObject
         SelectedChannel = channel;
         AddToWatchHistory(channel);
         Player.PlayChannel(channel);
-        UpdateEpgForChannel(channel);
+        Epg.ShowChannel(channel);
         IsViewingFullList = false;
     }
 
@@ -793,7 +780,7 @@ public partial class MainViewModel : ObservableObject
         else
             Player.PlayChannel(channel);
 
-        UpdateEpgForChannel(channel);
+        Epg.ShowChannel(channel);
         RefreshHistoryLists();
         IsViewingFullList = false;
     }
@@ -919,52 +906,13 @@ public partial class MainViewModel : ObservableObject
 
     #region EPG
 
-    private async Task LoadEpgAsync()
+    private async Task LoadEpgAsync(string url)
     {
-        if (string.IsNullOrEmpty(_epgUrl)) return;
-
-        try
-        {
-            IsEpgLoading = true;
-            Player.StatusText = "Cargando EPG...";
-            await _epgService.LoadAsync(_epgUrl);
-            Player.StatusText = "EPG cargada";
-            if (SelectedChannel != null)
-                UpdateEpgForChannel(SelectedChannel);
-        }
-        catch
-        {
-            Player.StatusText = "No se pudo cargar EPG";
-        }
-        finally
-        {
-            IsEpgLoading = false;
-        }
+        if (await Epg.LoadAsync(url) && SelectedChannel != null)
+            Epg.ShowChannel(SelectedChannel);
     }
 
-    public void UpdateEpgForChannel(Channel? channel)
-    {
-        if (channel == null || !_epgService.IsLoaded)
-        {
-            CurrentEpgProgrammes = new();
-            CurrentProgram = null;
-            NextProgram = null;
-            OnPropertyChanged(nameof(HasEpgData));
-            return;
-        }
-
-        var tvgId = !string.IsNullOrEmpty(channel.TvgId) ? channel.TvgId : channel.TvgName;
-        CurrentEpgProgrammes = new(_epgService.GetProgramsForChannel(tvgId));
-        CurrentProgram = _epgService.GetCurrentProgram(tvgId);
-        NextProgram = _epgService.GetNextProgram(tvgId);
-        OnPropertyChanged(nameof(HasEpgData));
-    }
-
-    public void RefreshEpgDisplay()
-    {
-        if (SelectedChannel != null && _epgService.IsLoaded)
-            UpdateEpgForChannel(SelectedChannel);
-    }
+    public void RefreshEpgDisplay() => Epg.Refresh(SelectedChannel);
 
     #endregion
 
