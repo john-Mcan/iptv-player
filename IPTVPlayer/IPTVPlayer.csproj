@@ -11,6 +11,13 @@
     <FileVersion>1.0.0</FileVersion>
   </PropertyGroup>
 
+  <!-- Al publicar para win-x64, copia solo la LibVLC de x64 (el paquete incluye x86 y arm64). -->
+  <PropertyGroup Condition="'$(RuntimeIdentifier)' == 'win-x64'">
+    <VlcWindowsX86Enabled>false</VlcWindowsX86Enabled>
+    <VlcWindowsArm64Enabled>false</VlcWindowsArm64Enabled>
+    <SatelliteResourceLanguages>es</SatelliteResourceLanguages>
+  </PropertyGroup>
+
   <ItemGroup>
     <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.2" />
     <PackageReference Include="LibVLCSharp" Version="3.10.2" />
