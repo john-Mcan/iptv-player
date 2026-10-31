@@ -6,6 +6,7 @@
     <UseWPF>true</UseWPF>
     <AssemblyTitle>Chucao</AssemblyTitle>
     <Description>Reproductor IPTV para Windows</Description>
+    <ApplicationIcon>Assets\chucao.ico</ApplicationIcon>
     <!-- AssemblyVersion y FileVersion salen de Version; el workflow de release la toma del tag. -->
     <Version>1.0.0</Version>
   </PropertyGroup>
