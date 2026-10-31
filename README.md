@@ -1,141 +1,172 @@
-# IPTV Player | Chucao
+<p align="center">
+  <img src="src/IPTVPlayer/Assets/chucao.svg" width="96" alt="Ícono de Chucao: un chucao, ave del sur de Chile">
+</p>
 
-Reproductor IPTV para Windows con soporte para listas M3U, streams en vivo y contenido on-demand.
+<h1 align="center">Chucao</h1>
 
-Construido con C# / WPF / LibVLCSharp sobre .NET 8.
+<p align="center">
+  Reproductor IPTV para Windows: abre tus listas M3U o tu cuenta Xtream Codes, con guía de programación,<br>
+  series por temporadas, «Continuar viendo» y Picture-in-Picture.
+</p>
 
-## Requisitos
+<p align="center">
+  <a href="https://github.com/john-Mcan/iptv-player/actions/workflows/ci.yml"><img src="https://github.com/john-Mcan/iptv-player/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
+  <img src="https://img.shields.io/badge/.NET-10-512BD4?logo=dotnet" alt=".NET 10">
+  <a href="LICENSE.md"><img src="https://img.shields.io/badge/licencia-PolyForm%20Noncommercial%201.0.0-blue" alt="Licencia PolyForm Noncommercial 1.0.0"></a>
+  <a href="https://github.com/john-Mcan/iptv-player/releases/latest"><img src="https://img.shields.io/github/v/release/john-Mcan/iptv-player?label=versi%C3%B3n" alt="Última versión"></a>
+</p>
 
-- Windows 10 o superior
-- [.NET 8 SDK](https://dotnet.microsoft.com/download/dotnet/8.0) (para compilar)
-- .NET 8 Runtime (para ejecutar el binario publicado)
+<p align="center">
+  <a href="https://github.com/john-Mcan/iptv-player/releases/latest"><b>Descargar la última versión</b></a>
+  · Windows 10 y 11 de 64 bits · no necesita instalar .NET
+</p>
 
-## Ejecutar en modo desarrollo
+![Chucao reproduciendo un canal en vivo, con la guía de programación debajo del video](docs/capturas/tv-en-vivo.png)
 
-```bash
-dotnet run --project IPTVPlayer
-```
+> [!IMPORTANT]
+> Chucao es solo un reproductor: **no incluye canales, listas ni contenido de ningún tipo**. Cada persona usa sus propias listas o cuentas y es responsable de tener derecho a ver lo que reproduce.
 
-O desde la carpeta del proyecto:
+## Funciones
 
-```bash
-cd IPTVPlayer
-dotnet run
-```
+### Fuentes
 
-## Compilar para distribucion
+- Listas **M3U/M3U8** desde una URL o un archivo local, con `tvg-id`, `tvg-name`, `tvg-logo` y `group-title`.
+- Cuentas **Xtream Codes** (servidor, usuario y contraseña). La contraseña se guarda cifrada para tu usuario de Windows.
+- Varias fuentes guardadas con nombre propio. La última se carga sola al abrir la app (se puede desactivar).
+- Clasificación automática en TV en vivo, Películas y Series.
 
-```bash
-dotnet publish IPTVPlayer -c Release -r win-x64 --self-contained -o publish
-```
+### TV en vivo y guía de programación
 
-Esto genera un ejecutable autocontenido en la carpeta `publish/` que no requiere tener .NET instalado.
+- Canales agrupados, búsqueda, favoritos y «Vistos recientemente».
+- **EPG** en formato XMLTV, también comprimida con GZip. La URL sale de `url-tvg` o `x-tvg-url` en la lista, o del panel Xtream, y se vincula por `tvg-id` o `tvg-name`.
+- **Programa actual y siguiente** en la cabecera de la guía y en pantalla completa; se actualiza cada minuto.
+
+### Películas y series
+
+- Grilla de pósters con búsqueda y orden (más recientes, A-Z, Z-A).
+- **«Continuar viendo»** con barra de progreso: retoma donde quedaste.
+- **Series por temporadas y episodios**, a partir de nombres como `S01E01`, `T01E01` o `1x01`.
+- **Siguiente episodio automático** al terminar un capítulo (conserva el audio, los subtítulos y la pantalla completa) y botón **«Siguiente capítulo»** cerca del final.
+
+### Reproducción
+
+- Motor LibVLC: HLS, DASH, RTMP, RTSP y contenido bajo demanda; cambio de pistas de audio y subtítulos.
+- **Reconexión automática** si el stream se corta, con espera creciente (1 s, 2 s, 4 s… hasta 30 s) y un máximo de intentos configurable.
+- **Pantalla completa** con controles que se ocultan solos.
+- **Picture-in-Picture**: ventana flotante siempre visible, que se puede arrastrar y redimensionar, con volumen en la rueda del mouse. Al cerrarla vuelves al mismo punto.
+
+### Configuración
+
+- Carga automática de la última fuente, intentos de reconexión, filtro de contenido para adultos, y limpieza del historial y los favoritos.
+- Recuerda el volumen, la pestaña, el ancho del panel y el tamaño y la posición de la ventana, también con varios monitores.
+
+## Capturas
+
+| Películas | Series | Picture-in-Picture |
+|---|---|---|
+| ![Grilla de películas con «Continuar viendo»](docs/capturas/peliculas.png) | ![Serie abierta por temporadas](docs/capturas/series.png) | ![Ventana PiP sobre el escritorio](docs/capturas/pip.png) |
 
 ## Uso
 
-1. Abre la aplicacion.
-2. Pega una URL de playlist M3U en la barra superior y haz clic en **Cargar** (o presiona Enter).
-3. Si ya ingresaste una URL antes, el dropdown muestra tus URLs recientes.
-4. Los canales aparecen agrupados por categoria en el panel izquierdo.
-5. Haz doble clic en un canal para reproducirlo.
-6. Al reiniciar, la app recuerda tu playlist y la carga automaticamente.
+1. Abre `IPTVPlayer.exe`.
+2. Haz clic en el ícono de **Fuentes** (junto a la configuración) y agrega una lista M3U (URL o archivo) o una cuenta Xtream.
+3. Pulsa **Guardar y cargar**. Los canales aparecen en TV en vivo, Películas y Series.
+4. Para cambiar de fuente, elígela en el selector del encabezado y pulsa **Cargar**.
 
-## Funcionalidades
+### Atajos de teclado
 
-### Reproduccion
+| Tecla | Acción |
+|---|---|
+| F11 | Entrar o salir de pantalla completa |
+| Esc | Salir de pantalla completa |
+| Espacio | Reproducir o pausar |
+| Doble clic en el video | Salir de pantalla completa |
 
-- Soporte para streams en vivo (HLS, DASH, RTMP, RTSP) y contenido on-demand.
-- Controles inmersivos (flotantes sobre el video): Play/Pause, Stop, barra de progreso (on-demand), volumen con mute.
-- Deteccion automatica de stream en vivo vs on-demand (indicador "EN VIVO" en la barra de estado).
-- Selector de pistas de audio y subtitulos con cambio en tiempo real.
-- **Reconexion automatica**: Si un stream se desconecta (error de red, fallo del servidor), el player reintenta automaticamente con backoff exponencial (hasta 10 intentos). Overlay visual muestra el progreso y permite cancelar.
+## Requisitos
 
-### Persistencia de configuracion
+- **Para usarla:** Windows 10 u 11 de 64 bits. El zip del release es autocontenido: trae el runtime de .NET y LibVLC.
+- **Para compilarla:** [.NET 10 SDK](https://dotnet.microsoft.com/download/dotnet/10.0).
 
-- La URL de playlist y las ultimas 5 URLs usadas se guardan automaticamente.
-- Volumen, mute, tamano y posicion de ventana se restauran al reabrir.
-- Al iniciar, la ultima playlist se carga automaticamente.
-- Configuracion almacenada en `%APPDATA%/IPTVPlayer/settings.json`.
+## Compilar, probar y publicar
 
-### Picture-in-Picture (PiP)
+```bash
+dotnet run --project src/IPTVPlayer                    # ejecutar en modo desarrollo
+dotnet test --solution IPTVPlayer.slnx                 # correr los tests
+dotnet publish src/IPTVPlayer -c Release -r win-x64 --self-contained -o publish
+```
 
-- Boton PiP en la barra de controles para activar modo ventana flotante.
-- Ventana borderless (sin decoracion), siempre visible sobre otras ventanas (Topmost).
-- Arrastrable desde cualquier punto del video.
-- Redimensionable: grip invisible en la esquina inferior derecha (el cursor cambia a SizeNWSE).
-- Al pasar el mouse sobre la ventana PiP aparecen:
-  - Boton de cierre (esquina superior derecha).
-  - Control de volumen con mute (esquina inferior izquierda).
-- Scroll del mouse sobre el PiP ajusta el volumen.
-- Doble clic en el PiP para cerrarlo y devolver la reproduccion a la ventana principal.
-- Al cerrar, retoma la posicion exacta (VOD) o reconecta al vivo (live streams).
-
-### Pantalla completa
-
-- Boton en controles o tecla F11 para entrar. Escape o F11 para salir.
-- Oculta toda la interfaz para experiencia inmersiva.
-- Overlay de controles que aparece al mover el mouse y se oculta automaticamente tras 3 segundos de inactividad.
-- Cursor se oculta junto con los controles.
-- Doble clic en el video para salir del fullscreen.
-
-### Navegacion
-
-- Panel lateral con canales agrupados por categoria (TreeView expandible) resuelto con ScrollBars consistentes.
-- Tabs de categorias para filtrado rapido.
-- Busqueda en tiempo real por nombre de canal con placeholders y estados responsivos.
-- Vista completa interactiva (grilla in-place flotando temporalmente sobre el video) para navegar listas largas (Favoritos, Historial).
-- Panel lateral redimensionable con GridSplitter.
-- Logos de canales cargados asincrona desde la URL `tvg-logo` de la playlist.
-
-## Atajos de teclado
-
-| Tecla   | Accion                              |
-|---------|-------------------------------------|
-| F11     | Entrar / salir pantalla completa    |
-| Escape  | Salir de pantalla completa          |
-| Espacio | Play / Pause                        |
-| Enter   | Cargar playlist (en campo URL)      |
-
-## Stack tecnologico
-
-| Componente       | Tecnologia                          |
-|-----------------|-------------------------------------|
-| Framework       | .NET 8 (LTS)                        |
-| UI              | WPF (Windows Presentation Foundation) |
-| Motor de video  | LibVLC 3 via LibVLCSharp            |
-| Patron MVVM     | CommunityToolkit.Mvvm 8.4           |
-| Persistencia    | System.Text.Json (JSON en AppData)  |
+`publish/` queda con un ejecutable autocontenido. Cada push corre la compilación y los tests en GitHub Actions, y cada tag `v*` publica un release con el zip ([cómo publicar una versión](docs/release.md)).
 
 ## Estructura del proyecto
 
 ```
-IPTVPlayer/
-  IPTVPlayer.csproj
-  App.xaml / App.xaml.cs           -- Entrada, tema gris+naranja, estilos, icono Chucao
-  MainWindow.xaml / .cs            -- Ventana principal + logica fullscreen + PiP + settings
-  Assets/
-    chucao.svg                     -- Icono del ave Chucao (diseño vectorial)
-  Models/
-    AppSettings.cs                 -- Modelo de configuracion persistente
-    Channel.cs                     -- Modelo de canal
-    ChannelGroup.cs                -- Agrupacion de canales por grupo
-    ContentCategory.cs             -- Categoria (Live, VOD, Series, etc.)
-    TrackInfo.cs                   -- Pista de audio o subtitulo
-  Services/
-    M3UParserService.cs            -- Parser de playlists M3U/M3U8
-    PlaylistService.cs             -- Carga desde URL o archivo local
-    SettingsService.cs             -- Persistencia de configuracion (JSON en AppData)
-  ViewModels/
-    MainViewModel.cs               -- Logica de playlist, filtrado, navegacion e historial de URLs
-    PlayerViewModel.cs             -- Logica de reproduccion, tracks, reconexion automatica
-  Views/
-    PiPWindow.xaml / .cs           -- Ventana Picture-in-Picture borderless
-  Converters/
-    BoolToVisibilityConverter.cs
-    InverseBoolToVisibilityConverter.cs
-    TimeSpanToStringConverter.cs
-    ImageLoadConverter.cs          -- Carga asincrona de logos de canales
+IPTVPlayer.slnx
+src/
+  IPTVPlayer.Core/              Lógica sin interfaz (net10.0)
+    Models/                     Channel, ContentCategory, PlaylistSource, EpgProgram,
+                                WatchHistoryEntry, AppSettings…
+    Services/
+      M3UParserService.cs       Parser de listas M3U/M3U8
+      PlaylistService.cs        Carga de listas y clasificación en TV en vivo, películas y series
+      XtreamApiService.cs       Cliente de la API de Xtream Codes
+      EpgService.cs             Guía XMLTV, plana o .gz
+      EpisodeParser.cs          Detección de S01E01, T01E01 y 1x01
+      SeriesCatalog.cs          Series, temporadas, episodios y siguiente episodio
+      WatchHistory.cs           «Vistos recientemente» y «Continuar viendo»
+      Favorites.cs              Favoritos por URL y por serie
+      SettingsService.cs        Configuración en %APPDATA%\IPTVPlayer\settings.json
+      SecretProtector.cs        Cifrado de contraseñas con DPAPI
+  IPTVPlayer/                   App WPF (net10.0-windows)
+    App.xaml                    Fusiona los estilos de Themes/
+    MainWindow.xaml             Encabezado, reproductor, pantalla completa y PiP
+    Themes/                     Colors, Icon, Buttons, Inputs, Lists, ScrollBars
+    ViewModels/                 MainViewModel, PlayerViewModel, EpgViewModel
+    Views/                      LiveTvSidebar, EpgPanel, MoviesSidebar, MoviesPanel,
+                                SeriesSidebar, SeriesPanel, FullListView,
+                                SourcesWindow, SettingsWindow, PiPWindow
+    Converters/
+    Assets/                     chucao.svg y chucao.ico
+tests/
+  IPTVPlayer.Tests/             xUnit v3: listas, EPG, series, historial, favoritos,
+                                fuentes, Xtream y configuración
+tools/
+  New-AppIcon.ps1               Regenera el .ico desde el ícono vectorial
+docs/                           Arquitectura, próximos pasos, publicación y capturas
+.github/                        CI, release y Dependabot
 ```
+
+## Stack
+
+| Componente | Tecnología |
+|---|---|
+| Plataforma | .NET 10 (LTS) |
+| Interfaz | WPF |
+| Video | LibVLC 3 con LibVLCSharp |
+| MVVM | CommunityToolkit.Mvvm |
+| Grillas virtualizadas | VirtualizingWrapPanel |
+| Persistencia | System.Text.Json en `%APPDATA%`; contraseñas con DPAPI |
+| Tests | xUnit v3 sobre Microsoft Testing Platform |
+| CI/CD | GitHub Actions y Dependabot |
+
+## Decisiones técnicas
+
+- **Controles sobre el video.** WPF no puede dibujar sobre el HWND de LibVLC (airspace), así que todos los controles superpuestos van dentro de `VideoView.Content`.
+- **PiP con su propia instancia de LibVLC.** En LibVLC 3 un reproductor no se puede mover a otra ventana. El PiP abre su propia conexión y, al cerrarlo, la ventana principal retoma la posición (VOD) o se reconecta (en vivo).
+- **Nada de llamadas a LibVLC desde sus eventos.** Los handlers solo despachan al hilo de la UI y lo que bloquea corre en `Task.Run`, para evitar deadlocks.
+- **Reconexión con espera exponencial**, cancelable, que retoma la posición en contenido bajo demanda.
+- **Todavía LibVLC 3.** LibVLC 4 resolvería el airspace, pero cuando se evaluó (febrero de 2026) no tenía versión estable.
+- **Episodios de Xtream bajo demanda,** nombrados igual que en una M3U, para reutilizar la misma navegación de series.
+
+El detalle está en [docs/arquitectura.md](docs/arquitectura.md).
+
+## Próximos pasos
+
+- Sacar los controles del reproductor de `MainWindow` y seguir achicando `MainViewModel`.
+- No guardar las credenciales de Xtream dentro de las URLs del historial y los favoritos.
+- Metadatos de películas y series (sinopsis, año) y Stalker Portal.
+- Ordenar canales, grabar el stream, menú contextual e instalador MSIX.
+
+La lista completa está en [docs/roadmap.md](docs/roadmap.md) y el historial de versiones, en el [CHANGELOG](CHANGELOG.md).
 
 ## Contribuciones
 
@@ -166,4 +197,4 @@ Para consultas sobre uso comercial, contacta al autor.
 
 ### Dependencias de terceros
 
-Las dependencias mantienen sus propias licencias: LibVLC y LibVLCSharp (LGPL-2.1-or-later), CommunityToolkit.Mvvm (MIT) y VirtualizingWrapPanel (MIT).
+Las dependencias mantienen sus propias licencias: LibVLC y LibVLCSharp (LGPL-2.1-or-later), CommunityToolkit.Mvvm (MIT), VirtualizingWrapPanel (MIT) y System.Security.Cryptography.ProtectedData (MIT).

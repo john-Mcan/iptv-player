@@ -10,15 +10,29 @@ a partir del historial de commits: no tienen tag ni binario publicado.
 
 ### Añadido
 
+- Cuentas Xtream Codes como fuente: TV en vivo, películas y series desde la API del panel, con
+  guía XMLTV del propio panel. Los episodios de cada serie se cargan al abrirla.
+- Gestor de fuentes: varias listas M3U (URL o archivo local) y cuentas Xtream guardadas con
+  nombre. Las URLs que guardaban las versiones anteriores pasan a ser fuentes.
+- Programa actual y siguiente en la cabecera de la guía y en pantalla completa.
+- Ícono del chucao en el ejecutable, en varios tamaños.
 - La ventana recuerda si quedó maximizada o en pantalla completa y vuelve a abrirse así.
+- Tests automatizados (xUnit) de listas M3U, EPG, series, historial, favoritos, fuentes, cliente
+  Xtream y configuración.
+- Compilación y tests en GitHub Actions en cada push, release automático al subir un tag y
+  revisión mensual de dependencias con Dependabot.
 - Licencia PolyForm Noncommercial 1.0.0.
 
 ### Cambiado
 
+- La app se llama Chucao en las ventanas, en «Acerca de» y en los metadatos del ejecutable.
 - Migración a .NET 10 (LTS), ya que el soporte de .NET 8 termina el 10 de noviembre de 2026.
 - Dependencias al día: LibVLCSharp 3.10.2, LibVLC 3.0.24 y VirtualizingWrapPanel 2.5.4.
 - La publicación para `win-x64` incluye solo la LibVLC de x64: la carpeta publicada baja de 444 MB
   a 241 MB.
+- El selector de fuentes reemplaza al campo de URL del encabezado.
+- Código reorganizado: la lógica sin interfaz pasa a `IPTVPlayer.Core`; `App.xaml` se divide en
+  diccionarios de estilos y `MainWindow.xaml` en un control por panel de cada pestaña.
 
 ### Corregido
 
@@ -28,6 +42,16 @@ a partir del historial de commits: no tienen tag ni binario publicado.
 - Al cerrar la app en pantalla completa, la columna izquierda quedaba oculta en el siguiente inicio.
 - Un clic en la grilla de series se contaba más de una vez y no dejaba entrar a temporadas y
   episodios.
+- Un contenido con la resolución en el nombre (por ejemplo «1920x1080») se agrupaba como si fuera
+  un episodio.
+- En la primera sesión, los cambios de la ventana de configuración no se guardaban en el disco.
+- Al retomar algo antiguo de «Continuar viendo» y abrir después otro contenido, se podía perder la
+  entrada en curso con su progreso.
+- Las grillas de pósters avanzaban a saltos con la rueda del mouse.
+
+### Seguridad
+
+- Las contraseñas de las cuentas Xtream se guardan cifradas con DPAPI para el usuario de Windows.
 
 ## [1.0.0] - 2026-02-26
 
