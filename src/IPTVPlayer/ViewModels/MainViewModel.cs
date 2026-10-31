@@ -13,8 +13,7 @@ public partial class MainViewModel : ObservableObject
     private readonly EpgService _epgService = new();
     private const int MaxRecentUrls = 5;
 
-    private HashSet<string> _favoriteUrlSet = new(StringComparer.OrdinalIgnoreCase);
-    private HashSet<string> _favoriteSeriesSet = new(StringComparer.OrdinalIgnoreCase);
+    private Favorites _favorites = new();
     private WatchHistory _history = new();
     private WatchHistoryEntry? _currentWatchEntry;
     private string? _epgUrl;
@@ -544,7 +543,7 @@ public partial class MainViewModel : ObservableObject
                         : $"{g.Count()} episodios",
                     Url = string.Empty,
                     Category = CategoryType.Series,
-                    IsFavorite = _favoriteSeriesSet.Contains(g.Key)
+                    IsFavorite = _favorites.ContainsSeries(g.Key)
                 };
             })
             // .OrderBy(c => c.Name) -> default preserves m3u order for latest additions at the top, we just handle Sort options:
@@ -583,7 +582,7 @@ public partial class MainViewModel : ObservableObject
                     GroupTitle = $"{seasonEps.Count} episodios",
                     Url = string.Empty,
                     Category = CategoryType.Series,
-                    IsFavorite = _favoriteSeriesSet.Contains(_currentSeriesShowName ?? "")
+                    IsFavorite = _favorites.ContainsSeries(_currentSeriesShowName ?? "")
                 };
             })
             .ToList();
@@ -783,7 +782,7 @@ public partial class MainViewModel : ObservableObject
             Url = entry.Url,
             LogoUrl = entry.LogoUrl,
             Category = entry.Category,
-            IsFavorite = _favoriteUrlSet.Contains(entry.Url)
+            IsFavorite = _favorites.Contains(entry.Url)
         };
         SelectedChannel = channel;
         _currentWatchEntry = entry;
@@ -812,21 +811,12 @@ public partial class MainViewModel : ObservableObject
                 ? (_currentSeriesShowName ?? channel.Name)
                 : channel.Name;
 
-            if (_favoriteSeriesSet.Remove(showName))
-                channel.IsFavorite = false;
-            else
-            {
-                _favoriteSeriesSet.Add(showName);
-                channel.IsFavorite = true;
-            }
+            channel.IsFavorite = _favorites.ToggleSeries(showName);
         }
         else
         {
             channel.IsFavorite = !channel.IsFavorite;
-            if (channel.IsFavorite)
-                _favoriteUrlSet.Add(channel.Url);
-            else
-                _favoriteUrlSet.Remove(channel.Url);
+            _favorites.Set(channel.Url, channel.IsFavorite);
         }
 
         RefreshFavoriteLists();
@@ -835,7 +825,7 @@ public partial class MainViewModel : ObservableObject
     private void MarkFavoriteChannels()
     {
         foreach (var channel in GetAllChannels())
-            channel.IsFavorite = _favoriteUrlSet.Contains(channel.Url);
+            channel.IsFavorite = _favorites.Contains(channel.Url);
     }
 
     private void RefreshFavoriteLists()
@@ -844,10 +834,10 @@ public partial class MainViewModel : ObservableObject
         LiveTvFavorites = new(favChannels.Where(c => c.Category == CategoryType.LiveTV));
         MovieFavorites = new(favChannels.Where(c => c.Category == CategoryType.Movies));
 
-        if (_seriesCatalog != null && _favoriteSeriesSet.Count > 0)
+        if (_seriesCatalog != null && _favorites.HasSeries)
         {
             SeriesFavorites = new(_seriesCatalog.GroupByShow()
-                .Where(g => _favoriteSeriesSet.Contains(g.Key))
+                .Where(g => _favorites.ContainsSeries(g.Key))
                 .Select(g => new Channel
                 {
                     Name = g.Key,
@@ -990,8 +980,7 @@ public partial class MainViewModel : ObservableObject
         if (Enum.TryParse<ContentTab>(settings.ActiveTab, out var tab))
             ActiveTab = tab;
 
-        _favoriteUrlSet = new HashSet<string>(settings.FavoriteUrls, StringComparer.OrdinalIgnoreCase);
-        _favoriteSeriesSet = new HashSet<string>(settings.FavoriteSeriesNames ?? [], StringComparer.OrdinalIgnoreCase);
+        _favorites = new Favorites(settings.FavoriteUrls, settings.FavoriteSeriesNames ?? []);
         _history = new WatchHistory(settings.WatchHistory ?? []);
         Player.MaxReconnectAttempts = settings.MaxReconnectAttempts;
         HideAdultContent = settings.HideAdultContent;
@@ -1006,8 +995,8 @@ public partial class MainViewModel : ObservableObject
         settings.Volume = Player.Volume;
         settings.IsMuted = Player.IsMuted;
         settings.ActiveTab = ActiveTab.ToString();
-        settings.FavoriteUrls = _favoriteUrlSet.ToList();
-        settings.FavoriteSeriesNames = _favoriteSeriesSet.ToList();
+        settings.FavoriteUrls = _favorites.Urls;
+        settings.FavoriteSeriesNames = _favorites.SeriesNames;
         settings.WatchHistory = _history.Entries.ToList();
         settings.HideAdultContent = HideAdultContent;
     }
@@ -1021,8 +1010,7 @@ public partial class MainViewModel : ObservableObject
 
     public void ClearFavorites()
     {
-        _favoriteUrlSet.Clear();
-        _favoriteSeriesSet.Clear();
+        _favorites.Clear();
         MarkFavoriteChannels();
         RefreshFavoriteLists();
         if (SeriesNavLevel == SeriesNavLevel.Shows)
