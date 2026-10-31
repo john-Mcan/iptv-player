@@ -1,0 +1,42 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  DOTNET_NOLOGO: true
+  DOTNET_CLI_TELEMETRY_OPTOUT: true
+
+jobs:
+  build:
+    name: Compilar y probar
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-dotnet@v6
+        with:
+          global-json-file: global.json
+
+      - name: Restaurar
+        run: dotnet restore IPTVPlayer.slnx
+
+      - name: Verificar formato
+        run: dotnet format whitespace --folder --verify-no-changes .
+
+      - name: Compilar
+        run: dotnet build IPTVPlayer.slnx --configuration Release --no-restore
+
+      - name: Tests
+        run: dotnet test --solution IPTVPlayer.slnx --configuration Release --no-build
