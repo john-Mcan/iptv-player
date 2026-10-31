@@ -3,9 +3,13 @@
     <Project Path="src/IPTVPlayer.Core/IPTVPlayer.Core.csproj" />
     <Project Path="src/IPTVPlayer/IPTVPlayer.csproj" />
   </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/IPTVPlayer.Tests/IPTVPlayer.Tests.csproj" />
+  </Folder>
   <Folder Name="/Solution Items/">
     <File Path=".editorconfig" />
     <File Path="Directory.Build.props" />
     <File Path="Directory.Packages.props" />
+    <File Path="global.json" />
   </Folder>
 </Solution>
