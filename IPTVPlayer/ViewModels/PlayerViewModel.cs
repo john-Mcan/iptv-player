@@ -165,7 +165,7 @@ public partial class PlayerViewModel : ObservableObject, IDisposable
         {
             if (!_isSeeking)
                 Position = e.Position * 100.0;
-                
+
             var newTime = _mediaPlayer.Time;
             // Protect against anomalies: sometimes LibVLC reports 0 or a wildly 
             // smaller time just before/during a connection drop.

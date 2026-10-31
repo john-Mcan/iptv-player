@@ -182,7 +182,7 @@ public partial class PiPWindow : Window, IDisposable
     private void PlayPauseBtn_Click(object sender, RoutedEventArgs e)
     {
         if (_mediaPlayer is null || _isDisposed) return;
-        
+
         if (_mediaPlayer.IsPlaying)
         {
             _mediaPlayer.Pause();

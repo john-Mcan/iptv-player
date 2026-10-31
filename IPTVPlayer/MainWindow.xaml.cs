@@ -224,7 +224,7 @@ public partial class MainWindow : Window
                 _settings.HideAdultContent = dlg.SettingsHideAdultContent;
                 _vm.HideAdultContent = dlg.SettingsHideAdultContent;
             }
-            
+
             changed = true;
         }
 

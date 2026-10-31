@@ -270,8 +270,8 @@ public partial class MainViewModel : ObservableObject
         if (string.IsNullOrWhiteSpace(PlaylistUrl)) return;
 
         // Backup existing valid URL
-        var previousUrl = RecentUrls.FirstOrDefault(); 
-        
+        var previousUrl = RecentUrls.FirstOrDefault();
+
         try
         {
             IsLoading = true;
@@ -315,13 +315,13 @@ public partial class MainViewModel : ObservableObject
         if (source == null) return null;
         if (!HideAdultContent) return source;
 
-        var cleanGroups = source.Groups.Select(g => 
+        var cleanGroups = source.Groups.Select(g =>
         {
             var isAdultGroup = AdultKeywords.Any(kw => g.Name.Contains(kw, StringComparison.OrdinalIgnoreCase));
             if (isAdultGroup) return null;
 
-            var cleanChannels = g.Channels.Where(c => 
-                !AdultKeywords.Any(kw => c.Name.Contains(kw, StringComparison.OrdinalIgnoreCase) || 
+            var cleanChannels = g.Channels.Where(c =>
+                !AdultKeywords.Any(kw => c.Name.Contains(kw, StringComparison.OrdinalIgnoreCase) ||
                                          c.GroupTitle.Contains(kw, StringComparison.OrdinalIgnoreCase))
             ).ToList();
 
@@ -390,7 +390,7 @@ public partial class MainViewModel : ObservableObject
 
     private List<ChannelGroup> OrderGroupsWithAdultAtEnd(List<ChannelGroup> groups)
     {
-        return groups.OrderBy(g => 
+        return groups.OrderBy(g =>
         {
             return AdultKeywords.Any(kw => g.Name.Contains(kw, StringComparison.OrdinalIgnoreCase)) ? 1 : 0;
         }).ToList();
@@ -1036,7 +1036,7 @@ public partial class MainViewModel : ObservableObject
     private void RemoveHistoryEntry(WatchHistoryEntry entry)
     {
         if (entry == null) return;
-        
+
         var existing = _watchHistory.FirstOrDefault(h => h.Url.Equals(entry.Url, StringComparison.OrdinalIgnoreCase));
         if (existing != null)
         {
