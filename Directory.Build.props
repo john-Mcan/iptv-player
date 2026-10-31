@@ -1,0 +1,12 @@
+<Project>
+
+  <!-- Propiedades comunes a todos los proyectos de la solución. -->
+  <PropertyGroup>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+    <!-- En CI (GitHub Actions define CI=true) una advertencia rompe la compilación. -->
+    <TreatWarningsAsErrors Condition="'$(CI)' == 'true'">true</TreatWarningsAsErrors>
+  </PropertyGroup>
+
+</Project>

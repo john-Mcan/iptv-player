@@ -1,0 +1,16 @@
+<Project>
+
+  <!-- Versiones de paquetes NuGet centralizadas para toda la solución. -->
+  <PropertyGroup>
+    <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageVersion Include="CommunityToolkit.Mvvm" Version="8.4.2" />
+    <PackageVersion Include="LibVLCSharp" Version="3.10.2" />
+    <PackageVersion Include="LibVLCSharp.WPF" Version="3.10.2" />
+    <PackageVersion Include="VideoLAN.LibVLC.Windows" Version="3.0.24" />
+    <PackageVersion Include="VirtualizingWrapPanel" Version="2.5.4" />
+  </ItemGroup>
+
+</Project>
