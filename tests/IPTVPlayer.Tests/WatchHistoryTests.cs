@@ -69,6 +69,31 @@ public class WatchHistoryTests
     }
 
     [Fact]
+    public void Record_AlLlenarseSacaLoMenosRecienteAunqueSeHayaVueltoAVer()
+    {
+        var history = new WatchHistory(timeProvider: _clock);
+        Watch(history, Enumerable.Range(1, WatchHistory.MaxEntries).Select(i => Item($"Pelicula{i}")).ToArray());
+
+        // La más antigua se vuelve a ver y después llega una nueva: debe salir Pelicula2, no Pelicula1.
+        Watch(history, Item("Pelicula1"), Item("Nueva"));
+
+        Assert.Contains(history.Entries, e => e.Name == "Pelicula1");
+        Assert.DoesNotContain(history.Entries, e => e.Name == "Pelicula2");
+    }
+
+    [Fact]
+    public void Touch_TambienProtegeLaEntradaDelRecorte()
+    {
+        var history = new WatchHistory(timeProvider: _clock);
+        Watch(history, Enumerable.Range(1, WatchHistory.MaxEntries).Select(i => Item($"Pelicula{i}")).ToArray());
+
+        history.Touch(history.Entries.Single(e => e.Name == "Pelicula1"));
+        Watch(history, Item("Nueva"));
+
+        Assert.Contains(history.Entries, e => e.Name == "Pelicula1");
+    }
+
+    [Fact]
     public void Recent_DevuelveLoUltimoVistoDeLaCategoria()
     {
         var history = Watch(new WatchHistory(timeProvider: _clock),

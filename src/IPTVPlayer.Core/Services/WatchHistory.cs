@@ -24,8 +24,8 @@ public sealed class WatchHistory
     private DateTime UtcNow => _timeProvider.GetUtcNow().UtcDateTime;
 
     /// <summary>
-    /// Registra que se empezó a ver <paramref name="channel"/>: actualiza su entrada o agrega una nueva
-    /// al inicio, y devuelve la entrada para ir guardando la posición.
+    /// Registra que se empezó a ver <paramref name="channel"/>: actualiza su entrada o crea una nueva,
+    /// la deja al inicio y devuelve la entrada para ir guardando la posición.
     /// </summary>
     public WatchHistoryEntry Record(Channel channel)
     {
@@ -33,7 +33,6 @@ public sealed class WatchHistory
 
         if (entry != null)
         {
-            entry.Timestamp = UtcNow;
             entry.Name = channel.Name;
             entry.LogoUrl = channel.LogoUrl;
         }
@@ -44,20 +43,28 @@ public sealed class WatchHistory
                 Url = channel.Url,
                 Name = channel.Name,
                 LogoUrl = channel.LogoUrl,
-                Category = channel.Category,
-                Timestamp = UtcNow
+                Category = channel.Category
             };
-            _entries.Insert(0, entry);
         }
 
-        while (_entries.Count > MaxEntries)
-            _entries.RemoveAt(_entries.Count - 1);
-
+        Touch(entry);
         return entry;
     }
 
-    /// <summary>Marca como vista ahora una entrada que se retoma desde el historial.</summary>
-    public void Touch(WatchHistoryEntry entry) => entry.Timestamp = UtcNow;
+    /// <summary>
+    /// Marca como vista ahora una entrada (por ejemplo, al retomarla desde el historial) y la deja al
+    /// inicio, para que el recorte a <see cref="MaxEntries"/> saque siempre lo menos reciente.
+    /// </summary>
+    public void Touch(WatchHistoryEntry entry)
+    {
+        entry.Timestamp = UtcNow;
+
+        _entries.Remove(entry);
+        _entries.Insert(0, entry);
+
+        while (_entries.Count > MaxEntries)
+            _entries.RemoveAt(_entries.Count - 1);
+    }
 
     public bool Remove(string url)
     {
