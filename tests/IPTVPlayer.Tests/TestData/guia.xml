@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE tv SYSTEM "xmltv.dtd">
+<!-- Guía de prueba. «Ahora» en los tests es el 15-01-2026 a las 11:15 UTC. -->
+<tv generator-info-name="IPTVPlayer.Tests">
+  <channel id="canal1.cl">
+    <display-name>Canal Uno</display-name>
+  </channel>
+  <channel id="canal2.cl">
+    <display-name>Canal Dos</display-name>
+  </channel>
+
+  <!-- Fuera de la ventana: terminó hace más de un día. -->
+  <programme start="20260110100000 +0000" stop="20260110110000 +0000" channel="canal1.cl">
+    <title>Programa antiguo</title>
+  </programme>
+
+  <!-- Desordenados a propósito: la guía debe quedar ordenada por hora de inicio. -->
+  <programme start="20260115110000 +0000" stop="20260115123000 +0000" channel="canal1.cl">
+    <title lang="es">Película de la mañana</title>
+    <desc lang="es">Una película para empezar el día.</desc>
+  </programme>
+  <programme start="20260115100000 +0000" stop="20260115110000 +0000" channel="canal1.cl">
+    <title lang="es">Noticias</title>
+  </programme>
+  <programme start="20260115123000 +0000" stop="20260115130000 +0000" channel="canal1.cl">
+    <title lang="es">Deportes</title>
+  </programme>
+
+  <!-- Sin «stop»: dura una hora. -->
+  <programme start="20260115130000 +0000" channel="canal1.cl">
+    <title>Sin hora de término</title>
+  </programme>
+
+  <!-- Fuera de la ventana: empieza en más de dos días. -->
+  <programme start="20260120100000 +0000" stop="20260120110000 +0000" channel="canal1.cl">
+    <title>Programa futuro</title>
+  </programme>
+
+  <!-- Otra zona horaria: 08:00 -03:00 son las 11:00 UTC. -->
+  <programme start="20260115080000 -0300" stop="20260115090000 -0300" channel="canal2.cl">
+    <title>Matinal</title>
+    <desc>Conversación &amp; actualidad.</desc>
+  </programme>
+
+  <!-- Sin canal: se ignora. -->
+  <programme start="20260115110000 +0000" stop="20260115120000 +0000">
+    <title>Huérfano</title>
+  </programme>
+</tv>
