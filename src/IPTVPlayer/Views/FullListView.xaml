@@ -34,7 +34,8 @@
                     </TextBlock.Style>
                 </TextBlock>
 
-                <ListBox ItemsSource="{Binding ActiveFullList}" Background="Transparent" BorderThickness="0">
+                <ListBox ItemsSource="{Binding ActiveFullList}" Background="Transparent" BorderThickness="0"
+                         VirtualizingPanel.ScrollUnit="Pixel">
                 <ListBox.ItemsPanel>
                     <ItemsPanelTemplate>
                         <vwp:VirtualizingWrapPanel/>

@@ -64,6 +64,7 @@
                  ScrollViewer.CanContentScroll="True"
                  VirtualizingStackPanel.IsVirtualizing="True"
                  VirtualizingStackPanel.VirtualizationMode="Recycling"
+                 VirtualizingPanel.ScrollUnit="Pixel"
                  Background="Transparent" BorderThickness="0">
             <ListBox.ItemsPanel>
                 <ItemsPanelTemplate>
