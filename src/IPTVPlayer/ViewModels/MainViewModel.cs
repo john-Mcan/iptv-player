@@ -10,7 +10,11 @@ namespace IPTVPlayer.ViewModels;
 public partial class MainViewModel : ObservableObject
 {
     private readonly PlaylistService _playlistService = new();
-    private const int MaxRecentUrls = 5;
+
+    // Fuente cargada y, si es Xtream, su cliente y los episodios ya pedidos por serie.
+    private PlaylistSource? _loadedSource;
+    private XtreamApiService? _xtream;
+    private readonly Dictionary<string, List<Channel>> _xtreamEpisodesCache = new();
 
     private Favorites _favorites = new();
     private WatchHistory _history = new();
@@ -24,13 +28,15 @@ public partial class MainViewModel : ObservableObject
     private ContentTab _activeTab = ContentTab.LiveTV;
 
     [ObservableProperty]
-    private string _playlistUrl = string.Empty;
+    [NotifyPropertyChangedFor(nameof(HasSources))]
+    private ObservableCollection<PlaylistSource> _sources = new();
+
+    [ObservableProperty]
+    private PlaylistSource? _selectedSource;
 
     [ObservableProperty]
     private string _searchText = string.Empty;
 
-    [ObservableProperty]
-    private ObservableCollection<string> _recentUrls = new();
 
     [ObservableProperty]
     private bool _isLoading;
@@ -121,6 +127,8 @@ public partial class MainViewModel : ObservableObject
     public bool IsSeriesActive => ActiveTab == ContentTab.Series;
 
     public bool CanNavigateSeriesBack => SeriesNavLevel != SeriesNavLevel.Shows;
+
+    public bool HasSources => Sources.Count > 0;
 
     public bool HasLiveTvFavorites => LiveTvFavorites.Count > 0;
     public bool HasMovieFavorites => MovieFavorites.Count > 0;
@@ -248,20 +256,37 @@ public partial class MainViewModel : ObservableObject
         OnPropertyChanged(nameof(CanNavigateSeriesBack));
     }
 
+    /// <summary>Carga la fuente seleccionada: una lista M3U o el catálogo de una cuenta Xtream.</summary>
     [RelayCommand]
-    private async Task LoadPlaylistAsync()
+    private async Task LoadSourceAsync()
     {
-        if (string.IsNullOrWhiteSpace(PlaylistUrl)) return;
-
-        // Backup existing valid URL
-        var previousUrl = RecentUrls.FirstOrDefault();
+        var source = SelectedSource;
+        if (source == null) return;
 
         try
         {
             IsLoading = true;
             ErrorMessage = string.Empty;
 
-            var categories = await _playlistService.LoadPlaylistAsync(PlaylistUrl);
+            List<ContentCategory> categories;
+            string? epgUrl;
+            XtreamApiService? xtream = null;
+
+            if (source.IsXtream)
+            {
+                xtream = new XtreamApiService(source);
+                categories = await xtream.LoadCatalogAsync();
+                epgUrl = xtream.EpgUrl;
+            }
+            else
+            {
+                categories = await _playlistService.LoadPlaylistAsync(source.Url);
+                epgUrl = _playlistService.EpgUrl;
+            }
+
+            _loadedSource = source;
+            _xtream = xtream;
+            _xtreamEpisodesCache.Clear();
 
             _fullLiveTvCategory = categories.FirstOrDefault(c => c.Type == CategoryType.LiveTV);
             _fullMoviesCategory = categories.FirstOrDefault(c => c.Type == CategoryType.Movies);
@@ -269,27 +294,32 @@ public partial class MainViewModel : ObservableObject
 
             ApplyCategoryFilters();
 
-            Player.StatusText = $"Playlist cargada — {TotalChannels} canales";
-            AddToRecentUrls(PlaylistUrl);
+            Player.StatusText = $"{source.Name} cargada — {TotalChannels} canales";
 
-            var epgUrl = _playlistService.EpgUrl;
             if (!string.IsNullOrEmpty(epgUrl))
                 _ = LoadEpgAsync(epgUrl);
         }
         catch (Exception ex)
         {
             ErrorMessage = $"Error: {ex.Message}";
-            Player.StatusText = "Error al cargar playlist";
-            // Restore previous functional URL if loading failed
-            if (!string.IsNullOrEmpty(previousUrl) && previousUrl != PlaylistUrl)
-            {
-                PlaylistUrl = previousUrl;
-            }
+            Player.StatusText = "Error al cargar la fuente";
+            // Vuelve a mostrar la fuente cuyo contenido sigue en pantalla.
+            if (_loadedSource != null && _loadedSource != source)
+                SelectedSource = _loadedSource;
         }
         finally
         {
             IsLoading = false;
         }
+    }
+
+    /// <summary>Reemplaza la lista de fuentes (después de editarlas) conservando la selección si sigue existiendo.</summary>
+    public void UpdateSources(IEnumerable<PlaylistSource> sources, PlaylistSource? selected)
+    {
+        Sources = new ObservableCollection<PlaylistSource>(sources);
+        SelectedSource = selected != null && Sources.Contains(selected)
+            ? selected
+            : Sources.FirstOrDefault(s => s == SelectedSource) ?? Sources.FirstOrDefault();
     }
 
     private static readonly string[] AdultKeywords = ["xxx", "adult", "adultos", "+18", "18+", "porn", "erotic", "erótic", "hentai"];
@@ -521,13 +551,16 @@ public partial class MainViewModel : ObservableObject
             .Select(g =>
             {
                 var seasonCount = g.Select(e => e.Season).Where(s => s > 0).Distinct().Count();
+                var pending = g.Select(e => e.Channel).FirstOrDefault(c => c.IsPendingSeries);
                 return new Channel
                 {
                     Name = g.Key,
                     LogoUrl = SeriesCatalog.FirstLogo(g),
-                    GroupTitle = seasonCount > 0
-                        ? $"{seasonCount} temp \u00B7 {g.Count()} ep"
-                        : $"{g.Count()} episodios",
+                    GroupTitle = pending != null
+                        ? pending.GroupTitle
+                        : seasonCount > 0
+                            ? $"{seasonCount} temp \u00B7 {g.Count()} ep"
+                            : $"{g.Count()} episodios",
                     Url = string.Empty,
                     Category = CategoryType.Series,
                     IsFavorite = _favorites.ContainsSeries(g.Key)
@@ -612,12 +645,12 @@ public partial class MainViewModel : ObservableObject
         FilteredSeries = new ObservableCollection<Channel>(channels);
     }
 
-    public void HandleSeriesItemClick(Channel item)
+    public async Task HandleSeriesItemClickAsync(Channel item)
     {
         switch (SeriesNavLevel)
         {
             case SeriesNavLevel.Shows:
-                NavigateToSeriesShow(item.Name);
+                await OpenSeriesShowAsync(item);
                 return;
 
             case SeriesNavLevel.Seasons:
@@ -631,7 +664,10 @@ public partial class MainViewModel : ObservableObject
                 break;
 
             case SeriesNavLevel.Episodes:
-                PlayChannel(item);
+                if (item.IsPendingSeries)
+                    await OpenSeriesShowAsync(item);
+                else
+                    PlayChannel(item);
                 return;
         }
 
@@ -672,6 +708,70 @@ public partial class MainViewModel : ObservableObject
         RefreshSeriesDisplay();
     }
 
+    /// <summary>Abre una serie; si es de Xtream y aún no tiene episodios, primero los pide al servidor.</summary>
+    [RelayCommand]
+    private async Task OpenSeriesShowAsync(Channel show)
+    {
+        if (await EnsureSeriesEpisodesAsync(show.Name))
+            NavigateToSeriesShow(show.Name);
+    }
+
+    private async Task<bool> EnsureSeriesEpisodesAsync(string showName)
+    {
+        var pending = _seriesCatalog?.PendingSeries(showName);
+        if (pending == null || _xtream == null)
+            return true;
+
+        try
+        {
+            IsLoading = true;
+            ErrorMessage = string.Empty;
+            Player.StatusText = $"Cargando episodios de {showName}...";
+
+            if (!_xtreamEpisodesCache.TryGetValue(pending.SeriesId, out var episodes))
+            {
+                episodes = await _xtream.LoadSeriesEpisodesAsync(pending);
+                _xtreamEpisodesCache[pending.SeriesId] = episodes;
+            }
+
+            if (episodes.Count == 0)
+            {
+                Player.StatusText = $"{showName} no tiene episodios disponibles";
+                return false;
+            }
+
+            ReplacePendingSeries(pending, episodes);
+            Player.StatusText = $"{showName}: {episodes.Count} episodios";
+            return true;
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage = $"Error: {ex.Message}";
+            Player.StatusText = "No se pudieron cargar los episodios";
+            return false;
+        }
+        finally
+        {
+            IsLoading = false;
+        }
+    }
+
+    /// <summary>Pone los episodios en el lugar de la serie pendiente dentro de la categoría y rearma las vistas.</summary>
+    private void ReplacePendingSeries(Channel pending, List<Channel> episodes)
+    {
+        foreach (var group in _fullSeriesCategory?.Groups ?? [])
+        {
+            var index = group.Channels.IndexOf(pending);
+            if (index < 0) continue;
+
+            group.Channels.RemoveAt(index);
+            for (var i = 0; i < episodes.Count; i++)
+                group.Channels.Insert(index + i, episodes[i]);
+        }
+
+        ApplyCategoryFilters();
+    }
+
     public void NavigateToSeriesShow(string showName)
     {
         if (_seriesCatalog == null) return;
@@ -702,7 +802,7 @@ public partial class MainViewModel : ObservableObject
     private void PlayMovie(Channel channel) => PlayChannel(channel);
 
     [RelayCommand]
-    private void ClickSeriesItem(Channel channel) => HandleSeriesItemClick(channel);
+    private Task ClickSeriesItemAsync(Channel channel) => HandleSeriesItemClickAsync(channel);
 
     /// <summary>Reproduce un canal o una entrada del historial (favoritos, recientes, «Continuar viendo»).</summary>
     [RelayCommand]
@@ -713,9 +813,6 @@ public partial class MainViewModel : ObservableObject
         else if (item is WatchHistoryEntry history)
             PlayFromHistory(history);
     }
-
-    [RelayCommand]
-    private void OpenSeriesShow(Channel show) => NavigateToSeriesShow(show.Name);
 
     public void PlayChannel(Channel channel)
     {
@@ -920,8 +1017,8 @@ public partial class MainViewModel : ObservableObject
 
     public void LoadSettings(AppSettings settings)
     {
-        PlaylistUrl = settings.LastPlaylistUrl;
-        RecentUrls = new ObservableCollection<string>(settings.RecentPlaylistUrls);
+        Sources = new ObservableCollection<PlaylistSource>(settings.Sources);
+        SelectedSource = Sources.FirstOrDefault(s => s.Id == settings.ActiveSourceId) ?? Sources.FirstOrDefault();
         Player.Volume = settings.Volume;
         Player.IsMuted = settings.IsMuted;
 
@@ -938,8 +1035,11 @@ public partial class MainViewModel : ObservableObject
     public void SaveToSettings(AppSettings settings)
     {
         SaveCurrentWatchPosition();
-        settings.LastPlaylistUrl = PlaylistUrl;
-        settings.RecentPlaylistUrls = RecentUrls.ToList();
+        settings.Sources = Sources.ToList();
+        settings.ActiveSourceId = (_loadedSource ?? SelectedSource)?.Id ?? string.Empty;
+        // Ya migradas a Sources; no se vuelven a escribir.
+        settings.LastPlaylistUrl = string.Empty;
+        settings.RecentPlaylistUrls = [];
         settings.Volume = Player.Volume;
         settings.IsMuted = Player.IsMuted;
         settings.ActiveTab = ActiveTab.ToString();
@@ -975,24 +1075,6 @@ public partial class MainViewModel : ObservableObject
         return cats.Where(c => c != null)
                    .SelectMany(c => c!.Groups)
                    .SelectMany(g => g.Channels);
-    }
-
-    private void AddToRecentUrls(string url)
-    {
-        if (string.IsNullOrWhiteSpace(url)) return;
-
-        var existing = RecentUrls.FirstOrDefault(u => u.Equals(url, StringComparison.OrdinalIgnoreCase));
-        if (existing is not null)
-            RecentUrls.Remove(existing);
-
-        RecentUrls.Insert(0, url);
-
-        while (RecentUrls.Count > MaxRecentUrls)
-            RecentUrls.RemoveAt(RecentUrls.Count - 1);
-
-        // WPF editable ComboBox clears Text when ItemsSource mutates,
-        // which wipes PlaylistUrl via the two-way binding. Restore it.
-        PlaylistUrl = url;
     }
 
     #endregion

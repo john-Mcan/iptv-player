@@ -7,8 +7,9 @@ public readonly record struct SeriesEpisode(string SeriesName, int Season, int E
 
 /// <summary>
 /// Organiza los contenidos de series por serie, temporada y episodio a partir de sus nombres
-/// («Serie S01E02», «Serie 1x02»…). Los contenidos sin patrón quedan con temporada 0.
-/// Las comparaciones de nombres de serie no distinguen mayúsculas.
+/// («Serie S01E02», «Serie 1x02»…). Los contenidos sin patrón quedan con temporada 0, salvo las
+/// series de Xtream cuyos episodios aún no se cargan (<see cref="Channel.IsPendingSeries"/>),
+/// que cuentan como series. Las comparaciones de nombres de serie no distinguen mayúsculas.
 /// </summary>
 public sealed class SeriesCatalog
 {
@@ -29,12 +30,12 @@ public sealed class SeriesCatalog
 
     public IReadOnlyList<SeriesEpisode> Entries => _entries;
 
-    /// <summary>True si al menos un nombre sigue un patrón de episodio.</summary>
-    public bool HasEpisodes => _entries.Any(e => e.Season > 0);
+    /// <summary>True si hay al menos una serie: un nombre con patrón de episodio o una serie de Xtream pendiente.</summary>
+    public bool HasEpisodes => _entries.Any(IsShowEntry);
 
-    /// <summary>Series con al menos un episodio reconocido, en el orden de la lista.</summary>
+    /// <summary>Series con al menos un episodio reconocido o pendientes de cargar, en el orden de la lista.</summary>
     public IReadOnlyList<string> ShowNames => _entries
-        .Where(e => e.Season > 0)
+        .Where(IsShowEntry)
         .Select(e => e.SeriesName)
         .Distinct(NameComparer)
         .ToList();
@@ -65,6 +66,10 @@ public sealed class SeriesCatalog
         return source.OrderBy(e => e.Season).ThenBy(e => e.Episode).ToList();
     }
 
+    /// <summary>La serie de Xtream con ese nombre cuyos episodios todavía no se cargan, si la hay.</summary>
+    public Channel? PendingSeries(string showName)
+        => EpisodesOf(showName).Select(e => e.Channel).FirstOrDefault(c => c.IsPendingSeries);
+
     /// <summary>El episodio que sigue al de <paramref name="currentUrl"/> en la misma serie, o null si es el último.</summary>
     public Channel? GetNextEpisode(string currentUrl)
     {
@@ -81,6 +86,8 @@ public sealed class SeriesCatalog
     /// <summary>El primer logo no vacío de los episodios, o cadena vacía si ninguno tiene.</summary>
     public static string FirstLogo(IEnumerable<SeriesEpisode> episodes)
         => episodes.Select(e => e.Channel.LogoUrl).FirstOrDefault(logo => !string.IsNullOrEmpty(logo)) ?? string.Empty;
+
+    private static bool IsShowEntry(SeriesEpisode entry) => entry.Season > 0 || entry.Channel.IsPendingSeries;
 
     private static List<int> DistinctSeasons(IEnumerable<SeriesEpisode> episodes)
         => episodes.Select(e => e.Season).Where(s => s > 0).Distinct().Order().ToList();

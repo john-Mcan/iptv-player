@@ -124,8 +124,8 @@ public partial class MainWindow : Window
 
         SyncTabUI();
 
-        if (_settings.AutoLoadPlaylist && !string.IsNullOrWhiteSpace(_vm.PlaylistUrl))
-            _vm.LoadPlaylistCommand.Execute(null);
+        if (_settings.AutoLoadPlaylist && _vm.SelectedSource != null)
+            _vm.LoadSourceCommand.Execute(null);
 
         if (_settings.IsFullscreen)
             EnterFullscreen();
@@ -191,16 +191,20 @@ public partial class MainWindow : Window
         }
     }
 
-    private void UrlBox_KeyDown(object sender, KeyEventArgs e)
-    {
-        if (e.Key == Key.Enter)
-        {
-            UrlBox.IsDropDownOpen = false;
-            _vm.LoadPlaylistCommand.Execute(null);
-        }
-    }
-
     #region Settings
+
+    private void Sources_Click(object sender, RoutedEventArgs e)
+    {
+        var dlg = new SourcesWindow(_vm.Sources, _vm.SelectedSource) { Owner = this };
+        var loadSelected = dlg.ShowDialog() == true;
+
+        _vm.UpdateSources(dlg.Sources, dlg.SelectedSource);
+        _vm.SaveToSettings(_settings);
+        SettingsService.Save(_settings);
+
+        if (loadSelected)
+            _vm.LoadSourceCommand.Execute(null);
+    }
 
     private void Settings_Click(object sender, RoutedEventArgs e)
     {

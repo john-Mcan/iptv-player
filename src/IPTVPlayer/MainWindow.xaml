@@ -64,26 +64,45 @@
                     </StackPanel>
                 </Border>
 
-                <!-- M3U Selector + Settings -->
+                <!-- Fuente de contenido, gestor de fuentes y configuración -->
                 <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
                     <Border Background="{StaticResource BgBrush}" CornerRadius="4"
                             BorderBrush="{StaticResource BorderBrush}" BorderThickness="1"
                             Padding="4,2">
                         <StackPanel Orientation="Horizontal">
-                            <ComboBox x:Name="UrlBox" Style="{StaticResource UrlCombo}" Width="240"
-                                      Text="{Binding PlaylistUrl, UpdateSourceTrigger=PropertyChanged}"
-                                      ItemsSource="{Binding RecentUrls}"
-                                      VerticalContentAlignment="Center"
-                                      KeyDown="UrlBox_KeyDown">
-                                <ComboBox.ToolTip>URL de playlist M3U</ComboBox.ToolTip>
-                            </ComboBox>
+                            <Grid Width="240">
+                                <ComboBox x:Name="SourceBox" Style="{StaticResource DarkCombo}"
+                                          ItemsSource="{Binding Sources}"
+                                          SelectedItem="{Binding SelectedSource}">
+                                    <ComboBox.ItemTemplate>
+                                        <DataTemplate>
+                                            <StackPanel Orientation="Horizontal">
+                                                <TextBlock Text="{Binding Name}" MaxWidth="170"
+                                                           TextTrimming="CharacterEllipsis"/>
+                                                <TextBlock Text="{Binding Type}" FontSize="10" Margin="6,0,0,0"
+                                                           Foreground="{StaticResource TextDimBrush}"
+                                                           VerticalAlignment="Center"/>
+                                            </StackPanel>
+                                        </DataTemplate>
+                                    </ComboBox.ItemTemplate>
+                                    <ComboBox.ToolTip>Fuente de contenido</ComboBox.ToolTip>
+                                </ComboBox>
+                                <TextBlock Text="Agrega una lista o cuenta" FontSize="12"
+                                           Foreground="{StaticResource TextDimBrush}"
+                                           Margin="10,0,24,0" VerticalAlignment="Center" IsHitTestVisible="False"
+                                           Visibility="{Binding HasSources, Converter={StaticResource InvBoolToVis}}"/>
+                            </Grid>
                             <Button Content="Cargar" Style="{StaticResource AccentBtn}"
                                     Margin="4,0,2,0" Padding="10,4"
-                                    Command="{Binding LoadPlaylistCommand}"/>
+                                    Command="{Binding LoadSourceCommand}"/>
                         </StackPanel>
                     </Border>
+                    <Button x:Name="SourcesButton" Style="{StaticResource IconBtn}" Content="&#xE8FD;"
+                            Margin="6,0,0,0" Click="Sources_Click">
+                        <Button.ToolTip>Fuentes: listas M3U y cuentas Xtream</Button.ToolTip>
+                    </Button>
                     <Button Style="{StaticResource IconBtn}" Content="&#xE713;"
-                            Margin="6,0,0,0" Click="Settings_Click">
+                            Margin="2,0,0,0" Click="Settings_Click">
                         <Button.ToolTip>Configuración</Button.ToolTip>
                     </Button>
                 </StackPanel>

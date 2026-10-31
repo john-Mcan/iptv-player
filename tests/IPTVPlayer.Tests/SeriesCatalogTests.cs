@@ -100,4 +100,17 @@ public class SeriesCatalogTests
         Assert.False(catalog.HasEpisodes);
         Assert.Empty(catalog.ShowNames);
     }
+
+    [Fact]
+    public void SeriesPendientesDeXtreamCuentanComoSeries()
+    {
+        var pending = new Channel { Name = "Dark", SeriesId = "301", Category = CategoryType.Series };
+        var catalog = new SeriesCatalog([pending, Item("Friends 1x01")]);
+
+        Assert.True(catalog.HasEpisodes);
+        Assert.Equal(["Dark", "Friends"], catalog.ShowNames);
+        Assert.Same(pending, catalog.PendingSeries("dark"));
+        Assert.Null(catalog.PendingSeries("Friends"));
+        Assert.Empty(catalog.SeasonsOf("Dark"));
+    }
 }
