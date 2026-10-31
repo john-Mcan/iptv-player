@@ -1,0 +1,71 @@
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+env:
+  DOTNET_NOLOGO: true
+  DOTNET_CLI_TELEMETRY_OPTOUT: true
+
+jobs:
+  release:
+    name: Publicar release
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-dotnet@v6
+        with:
+          global-json-file: global.json
+
+      - name: Tests
+        run: dotnet test --solution IPTVPlayer.slnx --configuration Release
+
+      - name: Publicar ejecutable autocontenido
+        shell: pwsh
+        run: |
+          $version = "${{ github.ref_name }}".TrimStart("v")
+          dotnet publish src/IPTVPlayer/IPTVPlayer.csproj `
+            --configuration Release `
+            --runtime win-x64 `
+            --self-contained `
+            -p:Version=$version `
+            -p:DebugType=None `
+            --output publish
+
+      - name: Comprimir
+        shell: pwsh
+        run: Compress-Archive -Path publish/* -DestinationPath "Chucao-${{ github.ref_name }}-win-x64.zip"
+
+      - name: Notas desde el CHANGELOG
+        shell: pwsh
+        run: |
+          $version = "${{ github.ref_name }}".TrimStart("v")
+          $lines = Get-Content CHANGELOG.md -Encoding utf8
+          $start = ($lines | Select-String -Pattern "^## \[$([regex]::Escape($version))\]" | Select-Object -First 1).LineNumber
+          if (-not $start) { throw "CHANGELOG.md no tiene una sección para la versión $version." }
+          $section = @()
+          foreach ($line in $lines[$start..($lines.Length - 1)]) {
+            if ($line -match '^## \[' -or $line -match '^\[[^\]]+\]: ') { break }
+            $section += $line
+          }
+          $intro = @(
+            "Descarga ``Chucao-${{ github.ref_name }}-win-x64.zip``, descomprímelo y abre ``IPTVPlayer.exe``.",
+            "Funciona en Windows 10 y 11 de 64 bits y no necesita instalar .NET."
+          )
+          ($intro + $section) -join "`n" | Set-Content release-notes.md -Encoding utf8
+
+      - name: Crear release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: >
+          gh release create "${{ github.ref_name }}"
+          "Chucao-${{ github.ref_name }}-win-x64.zip"
+          --title "Chucao ${{ github.ref_name }}"
+          --notes-file release-notes.md
+          --verify-tag
