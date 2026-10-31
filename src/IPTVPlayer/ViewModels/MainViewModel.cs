@@ -1,5 +1,4 @@
 using System.Collections.ObjectModel;
-using System.Text.RegularExpressions;
 using System.Windows;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -465,32 +464,6 @@ public partial class MainViewModel : ObservableObject
         FilteredMovies = new ObservableCollection<Channel>(channels);
     }
 
-    [GeneratedRegex(@"[Ss](\d{1,2})\s*[Ee](\d{1,3})|[Tt](\d{1,2})\s*[Ee](\d{1,3})|(\d{1,2})[xX](\d{1,3})")]
-    private static partial Regex EpisodePattern();
-
-    private static (string SeriesName, int Season, int Episode) ParseEpisodeInfo(string name)
-    {
-        var match = EpisodePattern().Match(name);
-        if (!match.Success)
-            return (name.Trim(), 0, 0);
-
-        var seriesName = name[..match.Index].Trim(' ', '-', '\u2013', '\u2014', ':', '.');
-        if (string.IsNullOrWhiteSpace(seriesName))
-            seriesName = name.Trim();
-
-        int season = 0, episode = 0;
-        for (int i = 1; i <= 5; i += 2)
-        {
-            if (match.Groups[i].Success)
-            {
-                season = int.Parse(match.Groups[i].Value);
-                episode = int.Parse(match.Groups[i + 1].Value);
-                break;
-            }
-        }
-        return (seriesName, season, episode);
-    }
-
     private void RebuildSeriesNavigation()
     {
         IEnumerable<Channel> source;
@@ -508,7 +481,7 @@ public partial class MainViewModel : ObservableObject
 
         _parsedSeriesData = source.Select(c =>
         {
-            var (seriesName, season, episode) = ParseEpisodeInfo(c.Name);
+            var (seriesName, season, episode) = EpisodeParser.Parse(c.Name);
             return (SeriesName: seriesName, Season: season, Episode: episode, Channel: c);
         }).ToList();
 
