@@ -1,3 +1,4 @@
+using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Interop;
@@ -27,8 +28,10 @@ public partial class SettingsWindow : Window
         ReconnectValueText.Text = maxReconnect.ToString();
         HideAdultCheckBox.IsChecked = hideAdultContent;
 
-        var version = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version;
+        var assembly = Assembly.GetExecutingAssembly();
+        var version = assembly.GetName().Version;
         VersionText.Text = $"v{version?.Major ?? 1}.{version?.Minor ?? 0}.{version?.Build ?? 0}";
+        CopyrightText.Text = assembly.GetCustomAttribute<AssemblyCopyrightAttribute>()?.Copyright ?? string.Empty;
     }
 
     private void Window_Loaded(object sender, RoutedEventArgs e)

@@ -2,6 +2,10 @@
 
   <!-- Propiedades comunes a todos los proyectos de la solución. -->
   <PropertyGroup>
+    <Product>Chucao</Product>
+    <Authors>John Moya C.</Authors>
+    <Company>John Moya C.</Company>
+    <Copyright>Copyright (c) 2026 John Moya C.</Copyright>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>

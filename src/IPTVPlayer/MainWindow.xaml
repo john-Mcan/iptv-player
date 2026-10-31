@@ -4,7 +4,7 @@
         xmlns:vlc="clr-namespace:LibVLCSharp.WPF;assembly=LibVLCSharp.WPF"
         xmlns:vwp="clr-namespace:WpfToolkit.Controls;assembly=VirtualizingWrapPanel"
         xmlns:models="clr-namespace:IPTVPlayer.Models;assembly=IPTVPlayer.Core"
-        Title="IPTV Player | Chucao" Height="700" Width="1100"
+        Title="Chucao" Height="700" Width="1100"
         MinHeight="480" MinWidth="720"
         Background="{StaticResource BgBrush}"
         Icon="{StaticResource ChucaoIcon}"

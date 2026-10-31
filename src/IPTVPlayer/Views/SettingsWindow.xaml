@@ -1,7 +1,7 @@
 <Window x:Class="IPTVPlayer.Views.SettingsWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="Configuración — IPTV Player | Chucao"
+        Title="Configuración — Chucao"
         Width="440" Height="480"
         WindowStartupLocation="CenterOwner"
         Background="{StaticResource BgBrush}"
@@ -139,7 +139,7 @@
                     <Image Source="{StaticResource ChucaoIcon}" Width="56" Height="56"
                            HorizontalAlignment="Center" Margin="0,0,0,12"
                            RenderOptions.BitmapScalingMode="HighQuality"/>
-                    <TextBlock Text="IPTV Player | Chucao" FontSize="17" FontWeight="Bold"
+                    <TextBlock Text="Chucao" FontSize="17" FontWeight="Bold"
                                Foreground="{StaticResource TextBrush}"
                                HorizontalAlignment="Center" Margin="0,0,0,2"/>
                     <TextBlock x:Name="VersionText" FontSize="12"
@@ -148,6 +148,9 @@
                     <TextBlock Text="Reproductor IPTV para Windows"
                                FontSize="12" Foreground="{StaticResource TextDimBrush}"
                                HorizontalAlignment="Center" TextAlignment="Center"/>
+                    <TextBlock x:Name="CopyrightText" FontSize="11"
+                               Foreground="{StaticResource TextDimBrush}"
+                               HorizontalAlignment="Center" Margin="0,6,0,0"/>
                 </StackPanel>
 
             </StackPanel>
