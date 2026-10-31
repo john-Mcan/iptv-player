@@ -1,12 +1,14 @@
 using System.Globalization;
-using System.IO;
 using System.IO.Compression;
-using System.Net.Http;
 using System.Xml;
 using IPTVPlayer.Models;
 
 namespace IPTVPlayer.Services;
 
+/// <summary>
+/// Descarga y consulta una guía de programación en formato XMLTV, plana o comprimida con GZip.
+/// Guarda en memoria los programas desde ayer hasta dos días adelante, agrupados por canal.
+/// </summary>
 public class EpgService
 {
     private static readonly HttpClient HttpClient = new()
@@ -14,11 +16,23 @@ public class EpgService
         Timeout = TimeSpan.FromMinutes(5)
     };
 
-    private readonly Dictionary<string, List<EpgProgram>> _programmes = new();
+    private readonly TimeProvider _timeProvider;
+    private Dictionary<string, List<EpgProgram>> _programmes = new();
     private string? _loadedUrl;
     private bool _isLoading;
 
+    public EpgService() : this(TimeProvider.System)
+    {
+    }
+
+    public EpgService(TimeProvider timeProvider)
+    {
+        _timeProvider = timeProvider;
+    }
+
     public bool IsLoaded => _loadedUrl != null;
+
+    private DateTime Now => _timeProvider.GetLocalNow().DateTime;
 
     public async Task LoadAsync(string epgUrl)
     {
@@ -27,22 +41,18 @@ public class EpgService
 
         try
         {
-            _programmes.Clear();
+            _programmes = new();
 
             using var response = await HttpClient.GetAsync(epgUrl, HttpCompletionOption.ResponseHeadersRead);
             response.EnsureSuccessStatusCode();
 
             await using var rawStream = await response.Content.ReadAsStreamAsync();
-            Stream parseStream = rawStream;
 
-            if (epgUrl.EndsWith(".gz", StringComparison.OrdinalIgnoreCase)
+            var isGzip = epgUrl.EndsWith(".gz", StringComparison.OrdinalIgnoreCase)
                 || response.Content.Headers.ContentEncoding.Any(e =>
-                    e.Equals("gzip", StringComparison.OrdinalIgnoreCase)))
-            {
-                parseStream = new GZipStream(rawStream, CompressionMode.Decompress);
-            }
+                    e.Equals("gzip", StringComparison.OrdinalIgnoreCase));
 
-            await Task.Run(() => ParseXmlTv(parseStream));
+            await Task.Run(() => Load(rawStream, isGzip));
             _loadedUrl = epgUrl;
         }
         finally
@@ -51,13 +61,25 @@ public class EpgService
         }
     }
 
-    private void ParseXmlTv(Stream stream)
+    /// <summary>Reemplaza la guía en memoria por la que se lee de <paramref name="stream"/>.</summary>
+    public void Load(Stream stream, bool isGzip)
     {
+        using var parseStream = isGzip
+            ? new GZipStream(stream, CompressionMode.Decompress, leaveOpen: true)
+            : null;
+
+        // Se arma un diccionario nuevo y se reemplaza al final, para que la UI no lea uno a medio llenar.
+        _programmes = ParseXmlTv(parseStream ?? stream, Now);
+    }
+
+    internal static Dictionary<string, List<EpgProgram>> ParseXmlTv(Stream stream, DateTime now)
+    {
+        var programmes = new Dictionary<string, List<EpgProgram>>();
         var settings = new XmlReaderSettings { DtdProcessing = DtdProcessing.Ignore };
         using var reader = XmlReader.Create(stream, settings);
 
-        var cutoff = DateTime.Now.AddDays(-1);
-        var maxDate = DateTime.Now.AddDays(2);
+        var cutoff = now.AddDays(-1);
+        var maxDate = now.AddDays(2);
 
         while (reader.Read())
         {
@@ -96,10 +118,10 @@ public class EpgService
                 }
             }
 
-            if (!_programmes.TryGetValue(channelId, out var list))
+            if (!programmes.TryGetValue(channelId, out var list))
             {
                 list = [];
-                _programmes[channelId] = list;
+                programmes[channelId] = list;
             }
 
             list.Add(new EpgProgram
@@ -112,8 +134,10 @@ public class EpgService
             });
         }
 
-        foreach (var kvp in _programmes)
+        foreach (var kvp in programmes)
             kvp.Value.Sort((a, b) => a.Start.CompareTo(b.Start));
+
+        return programmes;
     }
 
     public List<EpgProgram> GetProgramsForChannel(string? channelId)
@@ -121,7 +145,7 @@ public class EpgService
         if (string.IsNullOrEmpty(channelId) || !_programmes.TryGetValue(channelId, out var programs))
             return [];
 
-        var now = DateTime.Now;
+        var now = Now;
         return programs.Where(p => p.Stop > now).Take(24).ToList();
     }
 
@@ -130,7 +154,7 @@ public class EpgService
         if (string.IsNullOrEmpty(channelId) || !_programmes.TryGetValue(channelId, out var programs))
             return null;
 
-        var now = DateTime.Now;
+        var now = Now;
         return programs.FirstOrDefault(p => p.Start <= now && p.Stop > now);
     }
 
@@ -144,7 +168,11 @@ public class EpgService
         return programs.FirstOrDefault(p => p.Start >= current.Stop);
     }
 
-    private static DateTime ParseXmlTvTime(string s)
+    /// <summary>
+    /// Convierte una fecha XMLTV («20260131203000 +0100») a hora local.
+    /// Sin zona horaria, la fecha se toma tal cual; si no se puede leer, devuelve <see cref="DateTime.MinValue"/>.
+    /// </summary>
+    internal static DateTime ParseXmlTvTime(string s)
     {
         s = s.Trim();
 
