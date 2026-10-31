@@ -269,41 +269,6 @@ public partial class MainWindow : Window
 
     #endregion
 
-    #region Channel / Content Selection
-
-    private void ChannelTree_SelectedItemChanged(object sender, RoutedPropertyChangedEventArgs<object> e)
-    {
-        if (e.NewValue is Channel channel)
-            _vm.PlayChannel(channel);
-    }
-
-
-    private void FavoriteItem_Click(object sender, MouseButtonEventArgs e)
-    {
-        if (sender is FrameworkElement fe && fe.DataContext is Channel channel)
-            _vm.PlayChannel(channel);
-    }
-
-    private void SeriesFavoriteItem_Click(object sender, MouseButtonEventArgs e)
-    {
-        if (sender is FrameworkElement fe && fe.DataContext is Channel channel)
-            _vm.NavigateToSeriesShow(channel.Name);
-    }
-
-    private void HistoryItem_Click(object sender, MouseButtonEventArgs e)
-    {
-        if (sender is FrameworkElement fe && fe.DataContext is WatchHistoryEntry entry)
-            _vm.PlayFromHistory(entry);
-    }
-
-    private void ContinueWatchingItem_Click(object sender, MouseButtonEventArgs e)
-    {
-        if (sender is FrameworkElement fe && fe.DataContext is WatchHistoryEntry entry)
-            _vm.PlayFromHistory(entry);
-    }
-
-    #endregion
-
     #region PiP
 
     private void PiP_Click(object sender, RoutedEventArgs e)

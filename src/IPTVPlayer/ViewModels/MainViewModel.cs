@@ -776,14 +776,18 @@ public partial class MainViewModel : ObservableObject
     [RelayCommand]
     private void ClickSeriesItem(Channel channel) => HandleSeriesItemClick(channel);
 
+    /// <summary>Reproduce un canal o una entrada del historial (favoritos, recientes, «Continuar viendo»).</summary>
     [RelayCommand]
-    private void PlayFromFullList(object? item)
+    private void PlayItem(object? item)
     {
         if (item is Channel channel)
             PlayChannel(channel);
         else if (item is WatchHistoryEntry history)
             PlayFromHistory(history);
     }
+
+    [RelayCommand]
+    private void OpenSeriesShow(Channel show) => NavigateToSeriesShow(show.Name);
 
     public void PlayChannel(Channel channel)
     {

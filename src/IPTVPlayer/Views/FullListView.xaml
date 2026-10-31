@@ -1,0 +1,97 @@
+<UserControl x:Class="IPTVPlayer.Views.FullListView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vwp="clr-namespace:WpfToolkit.Controls;assembly=VirtualizingWrapPanel"
+             xmlns:models="clr-namespace:IPTVPlayer.Models;assembly=IPTVPlayer.Core">
+    <!-- Lista completa de favoritos o historial en una grilla sobre el reproductor. -->
+    <Border Background="{StaticResource SurfaceBrush}">
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
+            <Border Grid.Row="0" BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,0,1" Padding="16,12">
+                <Grid>
+                    <TextBlock Text="{Binding FullListTitle}" FontSize="18" FontWeight="SemiBold"
+                               Foreground="{StaticResource TextBrush}" VerticalAlignment="Center"/>
+                    <Button Style="{StaticResource IconBtn}" Content="&#xE711;" HorizontalAlignment="Right"
+                            Command="{Binding CloseFullListCommand}" Padding="8" ToolTip="Cerrar"/>
+                </Grid>
+            </Border>
+            <Grid Grid.Row="1" Margin="8">
+                <!-- Empty state text -->
+                <TextBlock Text="La lista está vacía" HorizontalAlignment="Center" VerticalAlignment="Center"
+                           FontSize="18" Foreground="#808088">
+                    <TextBlock.Style>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="Visibility" Value="Collapsed"/>
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding ActiveFullList.Count}" Value="0">
+                                    <Setter Property="Visibility" Value="Visible"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </TextBlock.Style>
+                </TextBlock>
+
+                <ListBox ItemsSource="{Binding ActiveFullList}" Background="Transparent" BorderThickness="0">
+                <ListBox.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <vwp:VirtualizingWrapPanel/>
+                    </ItemsPanelTemplate>
+                </ListBox.ItemsPanel>
+                <ListBox.ItemContainerStyle>
+                    <Style TargetType="ListBoxItem">
+                        <Setter Property="Padding" Value="0"/>
+                        <Setter Property="Margin" Value="0"/>
+                        <Setter Property="Template">
+                            <Setter.Value>
+                                <ControlTemplate TargetType="ListBoxItem">
+                                    <ContentPresenter/>
+                                </ControlTemplate>
+                            </Setter.Value>
+                        </Setter>
+                    </Style>
+                </ListBox.ItemContainerStyle>
+                <ListBox.ItemTemplate>
+                    <DataTemplate>
+                        <ContentControl Content="{Binding}">
+                            <ContentControl.Resources>
+                                <!-- Template for Channel -->
+                                <DataTemplate DataType="{x:Type models:Channel}">
+                                    <Border Width="160" Margin="6" CornerRadius="6" ClipToBounds="True" Background="{StaticResource SurfaceHighBrush}" Cursor="Hand">
+                                        <Border.InputBindings>
+                                            <MouseBinding MouseAction="LeftClick" Command="{Binding DataContext.PlayItemCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="{Binding}" />
+                                        </Border.InputBindings>
+                                        <Grid Height="220" ClipToBounds="True">
+                                            <Image Source="{Binding LogoUrl, Converter={StaticResource ImgLoad}, ConverterParameter=220, IsAsync=True}" Stretch="UniformToFill" RenderOptions.BitmapScalingMode="HighQuality"/>
+                                            <Border VerticalAlignment="Bottom" Background="#B2000000" Padding="8,6">
+                                                <TextBlock Text="{Binding Name}" Foreground="White" FontSize="12" TextWrapping="Wrap" MaxHeight="36" TextTrimming="CharacterEllipsis"/>
+                                            </Border>
+                                        </Grid>
+                                    </Border>
+                                </DataTemplate>
+                                <!-- Template for WatchHistoryEntry -->
+                                <DataTemplate DataType="{x:Type models:WatchHistoryEntry}">
+                                    <Border Width="160" Margin="6" CornerRadius="6" ClipToBounds="True" Background="{StaticResource SurfaceHighBrush}" Cursor="Hand">
+                                        <Border.InputBindings>
+                                            <MouseBinding MouseAction="LeftClick" Command="{Binding DataContext.PlayItemCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="{Binding}" />
+                                        </Border.InputBindings>
+                                        <Grid Height="220" ClipToBounds="True">
+                                            <Image Source="{Binding LogoUrl, Converter={StaticResource ImgLoad}, ConverterParameter=220, IsAsync=True}" Stretch="UniformToFill" RenderOptions.BitmapScalingMode="HighQuality"/>
+                                            <Border VerticalAlignment="Bottom" Background="#B2000000" Padding="8,6">
+                                                <TextBlock Text="{Binding Name}" Foreground="White" FontSize="12" TextWrapping="Wrap" MaxHeight="36" TextTrimming="CharacterEllipsis"/>
+                                            </Border>
+                                            <ProgressBar Height="4" VerticalAlignment="Bottom" Value="{Binding ProgressPercent, Mode=OneWay}" Maximum="100" Minimum="0" Foreground="{StaticResource AccentBrush}" Background="#333" BorderThickness="0"/>
+                                        </Grid>
+                                    </Border>
+                                </DataTemplate>
+                            </ContentControl.Resources>
+                        </ContentControl>
+                    </DataTemplate>
+                </ListBox.ItemTemplate>
+                </ListBox>
+            </Grid>
+        </Grid>
+    </Border>
+</UserControl>
