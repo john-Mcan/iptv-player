@@ -2,6 +2,14 @@
 
 Lo pendiente, ordenado por prioridad dentro de cada grupo.
 
+## Problemas conocidos
+
+Encontrados al sacar las capturas del README (octubre de 2026).
+
+- **Canal seleccionado ilegible sin foco.** Cuando el árbol de canales pierde el foco (por ejemplo, al hacer clic en el video), el canal seleccionado queda con fondo gris claro y texto naranja claro, y casi no se lee. El estilo de `TreeViewItem` en `Themes/Lists.xaml` solo cambia el color del texto y deja la plantilla por defecto, que usa el color de selección inactiva del sistema. Hay que darle una plantilla propia o redefinir `SystemColors.InactiveSelectionHighlightBrushKey`.
+- **«Disable» en los selectores de pista.** En los canales en vivo, los selectores de audio y subtítulos muestran «Disable», el nombre en inglés que LibVLC da a la pista vacía. Debería decir «Sin audio» o «Sin subtítulos», o no aparecer en la lista.
+- **La PiP no respeta el silencio.** `PiPWindow` recibe el volumen pero no el estado de silencio, así que si el reproductor principal está silenciado, la PiP se abre con sonido.
+
 ## Código
 
 - **Controles del reproductor fuera de `MainWindow`.** La barra flotante, los controles de pantalla completa y la lógica de PiP siguen en `MainWindow.xaml` y su code-behind. Se pueden pasar a un UserControl con eventos para PiP y pantalla completa.
