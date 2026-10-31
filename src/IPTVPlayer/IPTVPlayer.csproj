@@ -24,4 +24,8 @@
     <PackageReference Include="VirtualizingWrapPanel" />
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\IPTVPlayer.Core\IPTVPlayer.Core.csproj" />
+  </ItemGroup>
+
 </Project>
