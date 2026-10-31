@@ -321,9 +321,27 @@
                                             </TextBlock>
                                         </StackPanel>
 
-                                        <TextBlock Grid.Column="3" Text="{Binding Player.CurrentChannelName}"
-                                                   Foreground="White" FontSize="12" VerticalAlignment="Center"
-                                                   Margin="0,0,8,0" TextTrimming="CharacterEllipsis"/>
+                                        <StackPanel Grid.Column="3" VerticalAlignment="Center" Margin="0,0,8,0">
+                                            <TextBlock Text="{Binding Player.CurrentChannelName}"
+                                                       Foreground="White" FontSize="12"
+                                                       TextTrimming="CharacterEllipsis"/>
+                                            <!-- Programa al aire, si la guía lo tiene -->
+                                            <TextBlock FontSize="11" Foreground="{StaticResource TextDimBrush}"
+                                                       TextTrimming="CharacterEllipsis">
+                                                <TextBlock.Style>
+                                                    <Style TargetType="TextBlock">
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding Epg.CurrentProgram}" Value="{x:Null}">
+                                                                <Setter Property="Visibility" Value="Collapsed"/>
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </TextBlock.Style>
+                                                <Run Text="Ahora:" Foreground="{StaticResource AccentBrush}"/>
+                                                <Run Text="{Binding Epg.CurrentProgram.Title, Mode=OneWay}"/>
+                                                <Run Text="{Binding Epg.CurrentProgram.TimeRange, Mode=OneWay, StringFormat='· {0}'}"/>
+                                            </TextBlock>
+                                        </StackPanel>
 
                                         <Button Grid.Column="4" Style="{StaticResource IconBtn}"
                                                 Command="{Binding Player.ToggleMuteCommand}">

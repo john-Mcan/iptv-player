@@ -54,13 +54,66 @@
                     <RowDefinition Height="*"/>
                 </Grid.RowDefinitions>
 
-                <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="10,6,10,2">
-                    <TextBlock Text="&#xE787;" FontFamily="Segoe MDL2 Assets" FontSize="12"
-                               Foreground="{StaticResource AccentBrush}" Margin="0,0,6,0"
-                               VerticalAlignment="Center"/>
-                    <TextBlock Text="GUÍA DE PROGRAMACIÓN" FontSize="11" FontWeight="SemiBold"
-                               Foreground="{StaticResource TextDimBrush}" VerticalAlignment="Center"/>
-                </StackPanel>
+                <Grid Grid.Row="0" Margin="10,6,10,2">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="&#xE787;" FontFamily="Segoe MDL2 Assets" FontSize="12"
+                                   Foreground="{StaticResource AccentBrush}" Margin="0,0,6,0"
+                                   VerticalAlignment="Center"/>
+                        <TextBlock Text="GUÍA DE PROGRAMACIÓN" FontSize="11" FontWeight="SemiBold"
+                                   Foreground="{StaticResource TextDimBrush}" VerticalAlignment="Center"/>
+                    </StackPanel>
+
+                    <!-- Programa actual y siguiente, cuando la guía los tiene -->
+                    <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Right"
+                                Margin="16,0,0,0">
+                        <StackPanel.Style>
+                            <Style TargetType="StackPanel">
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding CurrentProgram}" Value="{x:Null}">
+                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </StackPanel.Style>
+                        <TextBlock Text="AHORA" FontSize="10" FontWeight="SemiBold"
+                                   Foreground="{StaticResource AccentBrush}"
+                                   VerticalAlignment="Center" Margin="0,0,6,0"/>
+                        <TextBlock FontSize="12" Foreground="{StaticResource TextBrush}"
+                                   VerticalAlignment="Center" TextTrimming="CharacterEllipsis" MaxWidth="320"
+                                   ToolTip="{Binding CurrentProgram.Description}">
+                            <Run Text="{Binding CurrentProgram.Title, Mode=OneWay}"/>
+                            <Run Text="{Binding CurrentProgram.TimeRange, Mode=OneWay, StringFormat='  {0}'}"
+                                 Foreground="{StaticResource TextDimBrush}" FontSize="11"/>
+                        </TextBlock>
+
+                        <StackPanel Orientation="Horizontal" Margin="18,0,0,0">
+                            <StackPanel.Style>
+                                <Style TargetType="StackPanel">
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding NextProgram}" Value="{x:Null}">
+                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </StackPanel.Style>
+                            <TextBlock Text="A CONTINUACIÓN" FontSize="10" FontWeight="SemiBold"
+                                       Foreground="{StaticResource TextDimBrush}"
+                                       VerticalAlignment="Center" Margin="0,0,6,0"/>
+                            <TextBlock FontSize="12" Foreground="{StaticResource TextBrush}"
+                                       VerticalAlignment="Center" TextTrimming="CharacterEllipsis" MaxWidth="260"
+                                       ToolTip="{Binding NextProgram.Description}">
+                                <Run Text="{Binding NextProgram.Title, Mode=OneWay}"/>
+                                <Run Text="{Binding NextProgram.TimeRange, Mode=OneWay, StringFormat='  {0}'}"
+                                     Foreground="{StaticResource TextDimBrush}" FontSize="11"/>
+                            </TextBlock>
+                        </StackPanel>
+                    </StackPanel>
+                </Grid>
 
                 <ScrollViewer Grid.Row="1" HorizontalScrollBarVisibility="Auto"
                               VerticalScrollBarVisibility="Disabled" Margin="6,2,6,6">
